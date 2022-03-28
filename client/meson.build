@@ -231,13 +231,14 @@ potdat = custom_target('copy data for morse test',
                         build_by_default : true,
                        )
 
-t1 = executable('t1_morse',
+  test('MorsePot test',
+       executable('morse',
                 'gtests/MorsePotTest.cpp',
                 link_with : eonlib,
                 dependencies: eontest_dep,
                 cpp_args : eon_extra_args,
                )
-  test('MorsePot test', t1)
+      )
 
 if get_option('with_gprd')
 
@@ -276,5 +277,4 @@ if get_option('with_gprd')
                   cpp_args : eon_extra_args,
                  )
       )
-
 endif
