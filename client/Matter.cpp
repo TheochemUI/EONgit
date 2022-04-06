@@ -591,6 +591,19 @@ double Matter::getPotentialEnergy()
         return 0.0;
 }
 
+void Matter::setPotential(Potential *pot){
+    // std::cout<<"Setting potential, resets calls";
+    if(pot != nullptr){
+        this->potential = pot;
+    }
+    recomputePotential = true;
+}
+
+Potential* Matter::getPotential(){
+    // This doesn't protect the lifetime!!!!
+    return this->potential;
+}
+
 
 double Matter::getKineticEnergy() const
 {
@@ -987,6 +1000,15 @@ double Matter::maxForce(void)
     return maxForce;
 }
 
+VectorXi Matter::getAtomicNrs() const
+{
+    return this->atomicNrs;
+}
+
+VectorXi Matter::getAtomicNrsFree() const
+{
+    return this->atomicNrs.array() * getFreeV().cast<int>().array();
+}
 
 AtomMatrix Matter::getFree() const
 {
@@ -1006,7 +1028,6 @@ VectorXd Matter::getFreeV() const
 {
     return VectorXd::Map(getFree().data(),3*numberOfAtoms());
 }
-
 
 AtomMatrix Matter::getVelocities() const
 {

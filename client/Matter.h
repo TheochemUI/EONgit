@@ -43,7 +43,8 @@ public:
 
     double distanceTo(const Matter& matter); // the distance to the given matter object
     double perAtomNorm(const Matter& matter); // the maximum distance between two atoms in the Matter objects
-    void setPotential(); // set potential function to use
+    void setPotential(Potential* pot); // set potential function to use
+    Potential* getPotential(); // get potential function
     void resize(long int nAtoms); // set or reset the number of atoms
     long int numberOfAtoms() const; // return the number of atoms
     Matrix3d getCell() const;
@@ -61,6 +62,8 @@ public:
     VectorXd getPositionsV() const;
     AtomMatrix getPositionsFree() const; // return coordinates of free atoms in array pos
     VectorXd getPositionsFreeV() const;
+    VectorXi getAtomicNrs() const;
+    VectorXi getAtomicNrsFree() const;
     void setPositions(const AtomMatrix pos); // update Matter with the new positions of the free atoms given in array pos
     void setPositionsV(const VectorXd pos);
     void setPositionsFree(const AtomMatrix pos); // update Matter with the new positions of the free atoms given in array pos
