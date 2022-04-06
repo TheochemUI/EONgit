@@ -36,6 +36,13 @@ meson setup builddir -Dwith_ams=true -Dwith_gprd=true --buildtype=release
 VERBOSE=1 meson compile -C builddir
 #+end_src
 Unfortunately, though this runs on ~mac~ machines, this setup does not work ~ctest~. ~CMakeLists~ are still provided.
+***** Meson
+Currently for all machines ~meson~ is recommended.
+#+begin_src bash
+meson setup bbdir -Dwith_gprd=true --buildtype=debug --default-library=static
+meson test -C bbdir
+#+end_src
+The static libraries help ensure all dependencies are present during testing.
 ** Testing
 Once ~eonclient~ has been built following the instructions above, we can run integration tests (AKMC) in the development environment.
 #+begin_src bash
