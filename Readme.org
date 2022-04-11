@@ -43,6 +43,14 @@ meson setup bbdir -Dwith_gprd=true --buildtype=debug --default-library=static
 meson test -C bbdir
 #+end_src
 The static libraries help ensure all dependencies are present during testing.
+However, with ~meson~, to get ~eonclient~ to pick up the right libraries, we
+need to install it:
+#+begin_src bash
+micromamba env create -f environment.yml
+micromamba activate eongit
+meson setup bbdir -Dwith_gprd=true --buildtype=debug --default-library=static --prefix $CONDA_PREFIX
+meson install -C bbdir
+#+end_src
 ** Testing
 Once ~eonclient~ has been built following the instructions above, we can run integration tests (AKMC) in the development environment.
 #+begin_src bash
