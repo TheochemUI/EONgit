@@ -4,6 +4,8 @@ project('eonclient', 'cpp',
 
 host_system = host_machine.system()
 eon_extra_args = [] #['-ggdb', '-O0', '-fno-inline-functions']
+eon_global_args = ['-O0', '-ggdb', '-fno-inline-functions']
+add_global_arguments(eon_global_args, language: 'cpp')
 
 add_languages('c', required: true)
 

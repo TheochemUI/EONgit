@@ -13,7 +13,6 @@
 #include <cstdlib>
 #include <cassert>
 #include <string.h>
-#include <typeinfo>
 
 using namespace std;
 
@@ -75,11 +74,11 @@ class MatterObjectiveFunction : public ObjectiveFunction
         bool isConverged() { return getConvergence() < parameters->optConvergedForce; }
         double getConvergence() {
             if (parameters->optConvergenceMetric == "norm") {
-                return matter->getForcesFreeV().norm(); 
+                return matter->getForcesFreeV().norm();
             } else if (parameters->optConvergenceMetric == "max_atom") {
-                return matter->maxForce(); 
+                return matter->maxForce();
             } else if (parameters->optConvergenceMetric == "max_component") {
-                return matter->getForces().maxCoeff(); 
+                return matter->getForces().maxCoeff();
             } else {
                 log("%s Unknown opt_convergence_metric: %s\n", LOG_PREFIX,
                     parameters->optConvergenceMetric.c_str());
@@ -95,31 +94,6 @@ class MatterObjectiveFunction : public ObjectiveFunction
 };
 
 
-std::pair<double, AtomMatrix> Matter::maybe_cached_energy_forces(){
-    if (this->useCache){
-        useCache = false;
-        return std::make_pair(this->potentialEnergy, this->forces);
-    } else {
-        return std::make_pair(this->getPotentialEnergy(), this->getForces());
-    }
-}
-
-std::pair<double, AtomMatrix> Matter::maybe_cached_energy_forces_free(){
-    if (this->useCache){
-        useCache = false;
-        AtomMatrix retforces(numberOfFreeAtoms(),3);
-        for(size_t i{0}, j{0}; i<nAtoms; i++)
-        {
-            if (!isFixed(i)) {
-                retforces.row(j) = this->forces.row(i);
-                j++;
-            }
-        }
-        return std::make_pair(this->potentialEnergy, retforces);
-    } else {
-        return std::make_pair(this->getPotentialEnergy(), this->getForcesFree());
-    }
-}
 
 Matter::Matter(Parameters *parameters)
 {
@@ -147,7 +121,6 @@ void Matter::initializeDataMembers(Parameters *params)
     forceCalls = 0;
     parameters = params;
     potential = NULL;
-    useCache = false;
 }
 
 
@@ -180,7 +153,7 @@ const Matter& Matter::operator=(const Matter& matter)
     velocities = matter.velocities;
 
     parameters = matter.parameters;
-    
+
     usePeriodicBoundaries = matter.usePeriodicBoundaries;
 
     potentialEnergy = matter.potentialEnergy;
@@ -228,7 +201,7 @@ bool Matter::compare(const Matter *matter, bool indistinguishable) {
 
 
 // Returns the distance to the given matter object.
-double Matter::distanceTo(const Matter& matter) 
+double Matter::distanceTo(const Matter& matter)
 {
     return pbc(positions - matter.positions).norm();
 }
@@ -258,7 +231,7 @@ VectorXd Matter::pbcV(VectorXd diffVector) const
 
 
 // Returns the maximum distance between two atoms in the Matter objects.
-double Matter::perAtomNorm(const Matter& matter) 
+double Matter::perAtomNorm(const Matter& matter)
 {
     long i = 0;
     double max_distance = 0.0;
@@ -383,7 +356,7 @@ bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint, string prefixMo
     }
 
     int iteration=0;
-    const char *forceLabel = parameters->optConvergenceMetricLabel.c_str(); 
+    const char *forceLabel = parameters->optConvergenceMetricLabel.c_str();
     if (!quiet) {
         log("%s %10s  %14s  %18s  %13s\n", LOG_PREFIX,
             "Iter", "Step size", forceLabel, "Energy");
@@ -392,12 +365,12 @@ bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint, string prefixMo
     }
 
 
-    while (!objf.isConverged() && 
+    while (!objf.isConverged() &&
            iteration < parameters->optMaxIterations) {
 
         AtomMatrix pos = getPositions();
 
-        optimizer->step(parameters->optMaxMove); 
+        optimizer->step(parameters->optMaxMove);
         iteration++;
 
         double stepSize = helper_functions::maxAtomMotion(pbc(getPositions()-pos));
@@ -417,7 +390,7 @@ bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint, string prefixMo
             matter2con(chk.str(), false);
         }
     }
-    
+
     if (iteration == 0) {
         if (!quiet) {
             log("%s %10i  %14.5e  %18.5e  %13.5f\n", LOG_PREFIX,
@@ -491,19 +464,19 @@ void Matter::setBiasForces(const AtomMatrix bf)
 {
     biasForces = bf.array() * getFree().array();
 }
-// return forces applied on all atoms in array 'force' 
+// return forces applied on all atoms in array 'force'
 AtomMatrix Matter::getForces()
 {
     computePotential();
     AtomMatrix ret = forces;
     int i;
-    for(i=0; i<nAtoms; i++)
-    {
-        if(isFixed[i])
-        {
-            ret.row(i).setZero();
-        }
-    }
+    // for(i=0; i<nAtoms; i++)
+    // {
+    //     if(isFixed[i])
+    //     {
+    //         ret.row(i).setZero();
+    //     }
+    // }
     return ret;
 }
 
@@ -617,8 +590,8 @@ double Matter::getPotentialEnergy()
     if(nAtoms>0) {
         computePotential();
         return potentialEnergy;
-    } 
-    else 
+    }
+    else
         return 0.0;
 }
 
@@ -678,12 +651,12 @@ void Matter::matter2xyz(std::string filename, bool append /*Append if file alrea
         exit(1);
     }
     fprintf(file,"%ld\nGenerated by EON\n", numberOfAtoms());
-    
+
     if(usePeriodicBoundaries)
-    { 
+    {
         applyPeriodicBoundary(); // Transform the coordinate to use the minimum image convention.
     }
-    
+
     for(i=0;i<numberOfAtoms();i++) {
         fprintf(file,"%s\t%11.6f\t%11.6f\t%11.6f\n", atomicNumber2symbol(getAtomicNr(i)), getPosition(i, 0), getPosition(i, 1), getPosition(i, 2));
     }
@@ -692,7 +665,7 @@ void Matter::matter2xyz(std::string filename, bool append /*Append if file alrea
 
 
 // Print atomic coordinates to a .con file
-bool Matter::matter2con(std::string filename, bool append) 
+bool Matter::matter2con(std::string filename, bool append)
 {
     bool state;
     FILE *file;
@@ -711,7 +684,7 @@ bool Matter::matter2con(std::string filename, bool append)
 }
 
 
-bool Matter::matter2con(FILE *file) 
+bool Matter::matter2con(FILE *file)
 {
     long int i;
     int j;
@@ -723,10 +696,10 @@ bool Matter::matter2con(FILE *file)
     first[0] = 0;
 
     if(usePeriodicBoundaries)
-    { 
+    {
         applyPeriodicBoundary(); // Transform the coordinate to use the minimum image convention.
     }
-    
+
     if(numberOfAtoms()>0) {
         if(getFixed(0)) Nfix = 1; // count the number of fixed atoms
         mass[0] = getMass(0);
@@ -948,7 +921,7 @@ bool Matter::con2matter(FILE *file)
         }
     }
     if(usePeriodicBoundaries)
-    { 
+    {
         applyPeriodicBoundary(); // Transform the coordinate to use the minimum image convention.
     }
     // potential_ = new Potential(parameters_);
@@ -974,6 +947,8 @@ void Matter::computePotential()
         if(!potential)
         {
             potential = Potential::getPotential(parameters);
+        } else {
+            potential->setParamsPot(parameters);
         }
 
         // TODO: Handle the number of system images better
@@ -992,7 +967,7 @@ void Matter::computePotential()
             Vector3d tempForce(3);
             tempForce = forces.colwise().sum()/nAtoms;
 
-            for(long int i=0; i<nAtoms; i++) 
+            for(long int i=0; i<nAtoms; i++)
             {
                 forces.row(i) -= tempForce.transpose();
             }
@@ -1036,6 +1011,7 @@ double Matter::maxForce(void)
     return maxForce;
 }
 
+
 VectorXi Matter::getAtomicNrs() const
 {
     return this->atomicNrs;
@@ -1064,6 +1040,7 @@ VectorXd Matter::getFreeV() const
 {
     return VectorXd::Map(getFree().data(),3*numberOfAtoms());
 }
+
 
 AtomMatrix Matter::getVelocities() const
 {
@@ -1110,7 +1087,7 @@ bool Matter::matter2convel(std::string filename)
     }
     file = fopen(filename.c_str(),"w");
     state = matter2convel(file);
-    fclose(file); 
+    fclose(file);
     return(state);
 }
 
@@ -1125,12 +1102,12 @@ bool Matter::matter2convel(FILE *file)
     double mass[MAXC];
     long atomicNrs[MAXC];
     first[0] = 0;
-    
+
     if(usePeriodicBoundaries)
-    { 
+    {
         applyPeriodicBoundary(); // Transform the coordinate to use the minimum image convention.
     }
-    
+
     if(numberOfAtoms() > 0) {
         if(getFixed(0)) Nfix = 1; // count the number of fixed atoms
         mass[0] = getMass(0);
@@ -1281,8 +1258,8 @@ bool Matter::convel2matter(FILE *file)
         cerr << "con2atoms does not support more than " << MAXC << " components (or less than 1).\n";
         return false;
     }
-    /* to store the position of the 
-        first atom of each element 'MAXC+1': the last element is used to store the total number of atom.*/ 
+    /* to store the position of the
+        first atom of each element 'MAXC+1': the last element is used to store the total number of atom.*/
     long int first[MAXC+1];
     long int Natoms = 0;
     first[0] = 0;

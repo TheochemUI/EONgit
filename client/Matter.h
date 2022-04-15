@@ -43,7 +43,6 @@ public:
 
     double distanceTo(const Matter& matter); // the distance to the given matter object
     double perAtomNorm(const Matter& matter); // the maximum distance between two atoms in the Matter objects
-    // TODO: Handle parameters
     void setPotential(Potential *pot); // set potential function to use
     Potential* getPotential();
     void resize(long int nAtoms); // set or reset the number of atoms
@@ -53,7 +52,7 @@ public:
     double getPosition(long int atom, int axis) const; // return the position of an atom along one of the axis
     void setPosition(long int atom, int axis, double position); // set the position of atom along axis to position
     void setVelocity(long int atom, int axis, double velocity); // set the velocity of atom along axis to velocity
-    bool relax(bool quiet=false, bool writeMovie=false, bool checkpoint=false, 
+    bool relax(bool quiet=false, bool writeMovie=false, bool checkpoint=false,
                string prefixMovie=string(), string prefixCheckpoint=string());
 
     AtomMatrix pbc(AtomMatrix diff) const;
@@ -63,8 +62,6 @@ public:
     VectorXd getPositionsV() const;
     AtomMatrix getPositionsFree() const; // return coordinates of free atoms in array pos
     VectorXd getPositionsFreeV() const;
-    VectorXi getAtomicNrs() const;
-    VectorXi getAtomicNrsFree() const;
     void setPositions(const AtomMatrix pos); // update Matter with the new positions of the free atoms given in array pos
     void setPositionsV(const VectorXd pos);
     void setPositionsFree(const AtomMatrix pos); // update Matter with the new positions of the free atoms given in array pos
@@ -75,7 +72,7 @@ public:
     void setBiasForces(const AtomMatrix bf);
     void setBiasPotential(BondBoost *bondBoost);
     void setForces(const AtomMatrix f);
-    AtomMatrix getAccelerations(); 
+    AtomMatrix getAccelerations();
 
     AtomMatrix getForces(); // return forces applied on all atoms in array force
     AtomMatrix getBiasForces();
@@ -117,15 +114,12 @@ public:
     bool matter2convel(std::string filename); // print con file with both coordinates and velocities  in Class Matter
     bool matter2convel(FILE *file); // print con file with both coordinates and velocities from data in Class Matter
     void matter2xyz(std::string filename, bool append=false); // print xyz file from data in Matter
+    VectorXi getAtomicNrs() const;
+    VectorXi getAtomicNrsFree() const;
     AtomMatrix getFree() const;
     VectorXd getFreeV() const;
     Matrix<double, Eigen::Dynamic, 1> getMasses() const;
 
-    //   The cachable mechanism is meant to facilitate appending converting matter
-    //   objects for the GPR without additional calls
-    bool useCache; // Meant to determine if the object's energy and forces can be read from cached_energy_forces
-    std::pair<double, AtomMatrix> maybe_cached_energy_forces(); // This is inherently unreliable, use with great caution, returns existing energy and forces
-    std::pair<double, AtomMatrix> maybe_cached_energy_forces_free(); // This is inherently unreliable, use with great caution, returns existing energy and forces
 
 private:
     Potential *potential; // pointer to function calculating the energy and forces

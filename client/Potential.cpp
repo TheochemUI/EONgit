@@ -1,6 +1,5 @@
 #include <time.h>
 
-#include <stdexcept>
 #include "Potential.h"
 #include "Parameters.h"
 #include "Log.h"
@@ -207,11 +206,6 @@ Potential *Potential::getPotential(Parameters *parameters)
         pot = new NewPot(parameters);
 #endif
 
-#ifdef WITH_GPRD
-    else if(parameters->potential == POT_GPR)
-      throw std::invalid_argument("Cannot use GPR potential directly"s);
-#endif
-
 #ifndef WIN32
 #ifdef WITH_VASP
     else if(parameters->potential == POT_VASP)
@@ -232,23 +226,28 @@ int Potential::fcalls = 0;
 int Potential::fcallsTotal = 0;
 double Potential::totalUserTime=0;
 
-std::pair<double, AtomMatrix> Potential::force(AtomMatrix positions, Eigen::VectorXi atomicNrs,
-                                               Matrix3d box, int nImages)
+void Potential::setParamsPot(Parameters* param){
+  this->pot->params = param;
+}
+
+AtomMatrix Potential::force(long nAtoms, AtomMatrix positions,
+                            VectorXi atomicNrs, double *energy, Matrix3d box, int nImages)
 {
-    int nAtoms = positions.rows();
-    AtomMatrix forces(nAtoms, 3);
-    double tenergy {0};
+    AtomMatrix forces(nAtoms,3);
 
     double start, userStart, sysStart;
-    if (params->LogPotential) {
+    if (this->pot->params->LogPotential) {
         helper_functions::getTime(&start, &userStart, &sysStart);
     }
     // TODO: Be better with the number of images
-    force(nAtoms, positions.data(), atomicNrs.data(), forces.data(), &tenergy,
-          box.data(), 1);
+    double *pos = positions.data();
+    double *frcs = forces.data();
+    double *bx = box.data();
+    int *nrs = atomicNrs.data();
+    force(nAtoms, pos, nrs, frcs, energy, bx,1);
 
     double finish, userFinish, sysFinish;
-    if (params->LogPotential) {
+    if (this->pot->params->LogPotential) {
         helper_functions::getTime(&finish, &userFinish, &sysFinish);
 
         log_file("[Potential] fcall#: %4d  real: %.6e  user: %.6e  sys: %.6e seconds\n",
@@ -264,19 +263,15 @@ std::pair<double, AtomMatrix> Potential::force(AtomMatrix positions, Eigen::Vect
 //    printf("energy %f\n",energy);
 //    printf("Matrix3d box %f\n",box);
 
-    if (params->maxForceCalls != 0) {
+    if (this->pot->params->maxForceCalls != 0) {
         if (fcallsTotal > params->maxForceCalls) {
             throw 1017;
         }
     }
 
-    return std::make_pair(tenergy, forces);
-}
+    return forces;
+};
 
-void Potential::setParams(Parameters *params){
-  this->params = params;
-}
-
-std::string Potential::getName(){
-  return this->params->potential;
+std::string Potential::getName() const {
+  return this->pot->params->potential;
 }

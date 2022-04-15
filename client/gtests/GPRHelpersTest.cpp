@@ -55,7 +55,7 @@ TEST_F(GPRHelpersTest, TestMatter) {
   Matter *pm = new Matter(pmorse);
   pm->con2matter(confile);
   Morse pot_morse;
-  pot_morse.setParams(pmorse); // *mostly* pointless
+  // pot_morse.setParameters(*pmorse); // *mostly* pointless
   EXPECT_EQ(pot_morse.getName(), "morse_pt"s)
     << "Potential name is incorrect [Morse]";
   double energy_morse{0};
@@ -73,7 +73,7 @@ TEST_F(GPRHelpersTest, TestMatter) {
   Matter *pljm = new Matter(plj);
   pljm->con2matter(confile);
   LJ ljpot;
-  ljpot.setParams(plj);
+  // ljpot.setParameters(plj);
   EXPECT_EQ(ljpot.getName(), "lj"s)
     << "Potential name is incorrect [LJ]";
   double energy_lj{0};

@@ -77,7 +77,8 @@ TEST_F(NEBJobGPRTest, TestMatter) {
   matterTest->setPositions((matterOne->getPositions()*1.01+matterFin->getPositions()*0.03) / 2);
   matterTest->setPotential(&gprpot);
   double blah = matterTest->getPotentialEnergy();
-  std::cout<<matterTest->getPotentialEnergy()<<" Matter at Test point\n";
+  std::cout<<blah<<" Matter at Test point\n";
+  // std::cout<<matterTest->getForces()<<" Matter at Test point\n";
   // RUN NEB!!!
   NudgedElasticBand *neb = new NudgedElasticBand(matterOne.get(), matterFin.get(), this->gprparameon.get());
   neb->compute();

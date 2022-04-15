@@ -82,12 +82,13 @@ class Potential
         static int wu_fcallsTotal;
         static double totalUserTime;
 
-        Parameters *params;
-        void setParams(Parameters *params);
-        std::string getName();
+        std::string getName() const;
 
-        std::pair<double, AtomMatrix> force(AtomMatrix positions, Eigen::VectorXi atomicNrs,
-                                            Matrix3d box, int nImages);
+        Parameters *params;
+        void setParamsPot(Parameters *param);
+
+        AtomMatrix force(long nAtoms, AtomMatrix positions,
+                         VectorXi atomicNrs, double *energy, Matrix3d box, int nImages);
 
         void virtual initialize() = 0;
         void virtual force(long nAtoms, const double *positions,

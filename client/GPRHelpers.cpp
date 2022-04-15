@@ -259,10 +259,11 @@ gpr::Observation helper_functions::eon_matter_to_init_obs(Matter& matter) {
   o.R.resize(1, free_rows * free_cols);
   o.G.resize(1, free_rows * free_cols);
   o.E.resize(1);
-  auto pe_forces{matter.maybe_cached_energy_forces_free()};
-  o.E.set(std::get<double>(pe_forces));
+  // auto pe_forces{matter.maybe_cached_energy_forces_free()};
+  o.E.set(matter.getPotentialEnergy());
   AtomMatrix freePos = matter.getPositionsFree();
-  AtomMatrix gradEig = std::get<AtomMatrix>(pe_forces);
+  // AtomMatrix gradEig = std::get<AtomMatrix>(pe_forces);
+  AtomMatrix gradEig = matter.getForcesFree();
   gradEig = gradEig * -1;
   for (size_t idx{0}; idx < free_rows * free_cols; ++idx){
       o.R[idx] = freePos.data()[idx];
@@ -274,7 +275,7 @@ gpr::Observation helper_functions::eon_matter_to_init_obs(Matter& matter) {
 std::pair<double, AtomMatrix> helper_functions::energy_and_forces(Matter *matter, Potential *pot){
   // TODO: Sanity checks, if the dynamic_cast fails it is a nullptr and so is
   // not evaluated
-  // if (!pot->getName().compare("gpr_pot"s)){
+  // if (pot->getName() == "gpr_pot"s){
   //   return helper_functions::gpr_energy_and_forces(matter, static_cast<GPRPotential*>(pot));
   // }
   // std::cout<<"Calling "<<pot->getName()<<std::endl;
@@ -291,28 +292,32 @@ std::pair<double, AtomMatrix> helper_functions::energy_and_forces(Matter *matter
   double energy{0};
   pot->force(nAtoms, pos, nullptr, frcs, &energy, bx, 1);
   AtomMatrix finForces{forces};
-  for (int i = 0; i <nAtoms; i++){
-    if(matter->getFixed(i)){
-      finForces.row(i).setZero();
-    }
-  }
+  // for (int i = 0; i <nAtoms; i++){
+  //   if(matter->getFixed(i)){
+  //     finForces.row(i).setZero();
+  //   }
+  // }
   return std::make_pair(energy, finForces);
 }
 
 std::pair<double, AtomMatrix> helper_functions::gpr_energy_and_forces(Matter *matter, GPRPotential *gprpot){
-  int nAtoms = matter->numberOfAtoms();
-  auto posdat = matter->getPositions();
-  auto celldat = matter->getCell();
+  long int nAtoms = matter->numberOfFreeAtoms();
   AtomMatrix forces = AtomMatrix::Constant(nAtoms, 3, 0);
-  auto calcEF = gprpot->force(posdat, matter->getAtomicNrs(), celldat, 1);
-  double potentialEnergy = std::get<double>(calcEF);
-  auto finForces = std::get<AtomMatrix>(calcEF);
-  for (int i = 0; i < nAtoms; i++){
-    if(matter->getFixed(i)){
-      finForces.row(i).setZero();
-    }
-  }
-  return std::make_pair(potentialEnergy, finForces);
+  auto posdat = matter->getPositionsFree();
+  auto celldat = matter->getCell();
+  double *pos = posdat.data();
+  double *frcs = forces.data();
+  double *bx = celldat.data();
+  double potentialEnergy{0};
+  gprpot->force(nAtoms, pos, nullptr, frcs,
+                                    &potentialEnergy, bx, 1);
+  // AtomMatrix finForces {forces};
+  // for (int i = 0; i < nAtoms; i++){
+  //   if(matter->getFixed(i)){
+  //     finForces.row(i).setZero();
+  //   }
+  // }
+  return std::make_pair(potentialEnergy, forces);
 }
 
 std::pair<gpr::AtomsConfiguration, gpr::Coord> helper_functions::eon_matter_to_frozen_conf_info(Matter *matter, double activeRadius){
@@ -381,7 +386,6 @@ std::vector<Matter> helper_functions::prepInitialPath(
       image.setPotential(initmatter.getPotential());
       image.getPotentialEnergy();
       image.getForcesFree();
-      image.useCache = true;
       ++idx;
     }
     return imageArray;
@@ -413,7 +417,6 @@ bool helper_functions::maybeUpdateObs(NudgedElasticBand& neb, gpr::Observation& 
     if (trupotdiff > nebConvergedForce){
       updated = true;
       neb.image[idx]->getPotential(); // Make sure energy is present
-      neb.image[idx]->useCache = true; // For later
     };
   }
   if (updated){
