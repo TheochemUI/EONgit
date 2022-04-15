@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <string>
 
-GPR_AIE_NEBJob::GPR_AIE_NEBJob(Parameters *parametersPassed) : parameters{parametersPassed},
-    fCallsNEB{0}, fCallsGPR{0}
+GPR_AIE_NEBJob::GPR_AIE_NEBJob(Parameters *parametersPassed) : fCallsNEB{0}, fCallsGPR{0}
 {
     gprfunc = std::make_unique<gpr::GaussianProcessRegression>();
+    parameters=parametersPassed;
 }
 
 GPR_AIE_NEBJob::~GPR_AIE_NEBJob()
@@ -20,91 +20,89 @@ std::vector<std::string> GPR_AIE_NEBJob::run(void)
     long status;
     int f1;
 
-    // TODO: Deal with tsInterpolate, see NudgedElasticBandJob
+    // TODO: Deal with tsInterpolate, see SafeNudgedElasticBandJob
     string reactantFilename = helper_functions::getRelevantFile("reactant.con");
     string productFilename = helper_functions::getRelevantFile("product.con");
 
-    auto matterInit = std::make_unique<Matter>(this->parameters);
-    auto matterFinal = std::make_unique<Matter>(this->parameters);
-
-    matterInit->con2matter(reactantFilename);
-    matterFinal->con2matter(productFilename);
-    Parameters eonp = *this->parameters;
+    auto eonp = this->parameters;
+    Matter matterInit(eonp), matterFinal(eonp);
+    matterInit.con2matter(reactantFilename);
+    matterFinal.con2matter(productFilename);
 
     // Prepare data for GPR
-    auto config_data = helper_functions::eon_matter_to_frozen_conf_info(matterInit.get(),
+    auto config_data = helper_functions::eon_matter_to_frozen_conf_info(&matterInit,
                                                                         this->parameters->gprPotActiveRadius);
     auto atoms_config = std::get<gpr::AtomsConfiguration>(config_data);
     // Setup the runs
-    auto imgArray = helper_functions::prepInitialPath(this->parameters);
+    auto imgArray = helper_functions::prepInitialPath(eonp);
     auto obspath = helper_functions::prepInitialObs(imgArray);
     // Setup GPR
-    auto eondat = std::make_pair(eonp, *matterInit);
+    auto eondat = std::make_pair(*eonp, matterInit);
     *this->gprfunc = helper_functions::initializeGPR(*this->gprfunc, atoms_config, obspath, eondat);
-    this->gprfunc->setHyperparameters(obspath, atoms_config);
+    this->gprfunc->setHyperparameters(obspath, atoms_config, true);
     this->gprfunc->optimize(obspath);
     // Prepare GPR potential
-    GPRPotential gprpot{this->parameters};
-    gprpot.registerGPRObject(this->gprfunc.get());
+    GPRPotential gprpot{eonp};
+    // gprpot.registerGPRObject(this->gprfunc.get());
     // Set Potentials
-    matterInit->setPotential(&gprpot);
-    matterFinal->setPotential(&gprpot);
+    LJ ljpot;
+    ljpot.setParams(eonp);
+    matterInit.setPotential(&ljpot);
+    matterFinal.setPotential(&ljpot);
 
-    auto nebInit = helper_functions::prepGPRNEBround(*this->gprfunc,
-                                                *matterInit, *matterFinal,
-                                                eonp);
+    auto nebInit = new SafeNudgedElasticBand(matterInit, matterFinal, eonp);
     nebInit->compute();
     this->fCallsGPR += 1;
 
-    bool mustUpdate = helper_functions::maybeUpdateObs(*nebInit, obspath, eonp);
+    bool mustUpdate = helper_functions::maybeUpdateObs(*nebInit, obspath, *eonp);
 
     f1 = Potential::fcalls;
 
     while(mustUpdate){
         this->gprfunc->setHyperparameters(obspath, atoms_config, false);
         this->gprfunc->optimize(obspath);
-        auto nebTwo = helper_functions::prepGPRNEBround(*this->gprfunc,
-                                                        *matterInit, *matterFinal,
-                                                        eonp);
+        // gprpot.registerGPRObject(this->gprfunc.get());
+        auto nebTwo = new SafeNudgedElasticBand(matterInit, matterFinal, eonp);
         nebTwo->compute();
         this->fCallsGPR += 1;
-        mustUpdate = helper_functions::maybeUpdateObs(*nebTwo, obspath, eonp);
+        mustUpdate = helper_functions::maybeUpdateObs(*nebTwo, obspath, *eonp);
+        delete nebTwo;
     };
     // If there is only one round and no updates, do not redo NEB
     if (this->fCallsGPR > 1){
         // Final round
-        auto nebFin = helper_functions::prepGPRNEBround(*this->gprfunc,
-                                                        *matterInit, *matterFinal,
-                                                        eonp);
+        auto nebFin = new SafeNudgedElasticBand(matterInit, matterFinal, eonp);
         status = nebFin->compute();
         this->fCallsGPR += 1;
 
         fCallsNEB += Potential::fcalls - f1;
 
-        if (status == NudgedElasticBand::STATUS_INIT) {
-            status = NudgedElasticBand::STATUS_GOOD;
+        if (status == SafeNudgedElasticBand::STATUS_INIT) {
+            status = SafeNudgedElasticBand::STATUS_GOOD;
         }
 
         printEndState(status);
-        saveData(status, nebFin.get());
-
+        saveData(status, nebFin);
+        delete nebFin;
+        delete nebInit;
         return returnFiles;
     } else {
         // TODO: Be more elegant when one round has occurred
         fCallsNEB += Potential::fcalls - f1;
 
-        if (status == NudgedElasticBand::STATUS_INIT) {
-            status = NudgedElasticBand::STATUS_GOOD;
+        if (status == SafeNudgedElasticBand::STATUS_INIT) {
+            status = SafeNudgedElasticBand::STATUS_GOOD;
         }
 
         printEndState(status);
-        saveData(status, nebInit.get());
+        saveData(status, nebInit);
+        delete nebInit;
 
         return returnFiles;
     }
 }
 
-void GPR_AIE_NEBJob::saveData(int status, NudgedElasticBand *neb)
+void GPR_AIE_NEBJob::saveData(int status, SafeNudgedElasticBand *neb)
 {
     FILE *fileResults, *fileNEB;
 
@@ -117,17 +115,17 @@ void GPR_AIE_NEBJob::saveData(int status, NudgedElasticBand *neb)
     fprintf(fileResults, "%d total_force_calls\n", Potential::fcalls);
     fprintf(fileResults, "%d force_calls_neb\n", fCallsNEB);
     fprintf(fileResults, "%d gpr_created\n", fCallsGPR);
-    fprintf(fileResults, "%f energy_reference\n", neb->image[0]->getPotentialEnergy());
-    fprintf(fileResults, "%li number_of_images\n", neb->images);
-    for(long i=0; i<=neb->images+1; i++) {
-        fprintf(fileResults, "%f image%li_energy\n", neb->image[i]->getPotentialEnergy()-neb->image[0]->getPotentialEnergy(), i);
-        fprintf(fileResults, "%f image%li_force\n", neb->image[i]->getForces().norm(), i);
-        fprintf(fileResults, "%f image%li_projected_force\n", neb->projectedForce[i]->norm(), i);
+    fprintf(fileResults, "%f energy_reference\n", neb->imageArray.front().getPotentialEnergy());
+    fprintf(fileResults, "%li number_of_images\n", neb->nimages);
+    for(long i=0; i<=neb->nimages+1; i++) {
+        fprintf(fileResults, "%f image%li_energy\n", neb->imageArray[i].getPotentialEnergy()-neb->imageArray.front().getPotentialEnergy(), i);
+        fprintf(fileResults, "%f image%li_force\n", neb->imageArray[i].getForces().norm(), i);
+        fprintf(fileResults, "%f image%li_projected_force\n", neb->projectedForceArray[i].norm(), i);
     }
     fprintf(fileResults, "%li number_of_extrema\n", neb->numExtrema);
     for(long i=0; i<neb->numExtrema; i++) {
-        fprintf(fileResults, "%f extremum%li_position\n", neb->extremumPosition[i], i);
-        fprintf(fileResults, "%f extremum%li_energy\n", neb->extremumEnergy[i], i);
+        fprintf(fileResults, "%f extremum%li_position\n", neb->extremumPositions[i], i);
+        fprintf(fileResults, "%f extremum%li_energy\n", neb->extremumEnergies[i], i);
     }
 
     fclose(fileResults);
@@ -135,8 +133,8 @@ void GPR_AIE_NEBJob::saveData(int status, NudgedElasticBand *neb)
     std::string nebFilename("neb.con");
     returnFiles.push_back(nebFilename);
     fileNEB = fopen(nebFilename.c_str(), "wb");
-    for(long i=0; i<=neb->images+1; i++) {
-        neb->image[i]->matter2con(fileNEB);
+    for(long i=0; i<=neb->nimages+1; i++) {
+        neb->imageArray[i].matter2con(fileNEB);
     }
     fclose(fileNEB);
 
@@ -147,9 +145,9 @@ void GPR_AIE_NEBJob::saveData(int status, NudgedElasticBand *neb)
 void GPR_AIE_NEBJob::printEndState(int status)
 {
     log("\nFinal state: ");
-    if(status == NudgedElasticBand::STATUS_GOOD)
+    if(status == SafeNudgedElasticBand::STATUS_GOOD)
         log("GPR-AIE Nudged elastic band, successful.\n");
-    else if(status == NudgedElasticBand::STATUS_BAD_MAX_ITERATIONS)
+    else if(status == SafeNudgedElasticBand::STATUS_BAD_MAX_ITERATIONS)
         log("Nudged elastic band, too many iterations.\n");
     else
         log("Unknown status: %i!\n", status);

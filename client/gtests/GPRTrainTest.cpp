@@ -88,7 +88,8 @@ TEST_F(GPRTrainTest, TestMatter) {
   // Function calls
   GPRPotential pot{this->parameters.get()};
   pot.registerGPRObject(this->gprfunc.get());
-  auto egf_gpro = helper_functions::gpr_energy_and_forces(this->initmatter.get(), &pot);
+  auto pos = initmatter->getPositions();
+  auto egf_gpro = helper_functions::gpr_energy_and_forces(pos, pos.rows(), &pot);
   auto energy_gpro = std::get<double>(egf_gpro);
   auto forces_gpro = std::get<AtomMatrix>(egf_gpro);
   ASSERT_NEAR(energy_gpro, init_eref, this->threshold*1e3)

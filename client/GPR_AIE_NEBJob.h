@@ -4,6 +4,7 @@
 #include "Matter.h"
 #include "Parameters.h"
 #include "NudgedElasticBand.h"
+#include "SafeNudgedElasticBand.h"
 #include "Job.h"
 #include "GPRHelpers.h"
 
@@ -19,7 +20,7 @@ class GPR_AIE_NEBJob : public Job {
 
         // functions
         void printEndState(int status);
-        void saveData(int status, NudgedElasticBand *neb);
+        void saveData(int status, SafeNudgedElasticBand *neb);
 
         // variables
         std::vector<std::string> returnFiles;

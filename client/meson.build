@@ -98,6 +98,7 @@ eonlib_sources = [
            'ProcessSearchJob.cpp',
            'Bundling.cpp',
            'NudgedElasticBand.cpp',
+           'SafeNudgedElasticBand.cpp',
            'MonteCarloJob.cpp',
            'DynamicsJob.cpp',
            'MonteCarlo.cpp',

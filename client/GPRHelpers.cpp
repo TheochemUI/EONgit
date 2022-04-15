@@ -265,53 +265,50 @@ gpr::Observation helper_functions::eon_matter_to_init_obs(Matter& matter) {
   AtomMatrix gradEig = std::get<AtomMatrix>(pe_forces);
   gradEig = gradEig * -1;
   for (size_t idx{0}; idx < free_rows * free_cols; ++idx){
-      o.R[idx] = freePos.data()[idx];
-      o.G[idx] = gradEig.data()[idx];
+      o.R(0, idx) = freePos.data()[idx];
+      o.G(0, idx) = gradEig.data()[idx];
   }
   return o;
 }
 
-std::pair<double, AtomMatrix> helper_functions::energy_and_forces(Matter *matter, Potential *pot){
+std::pair<double, AtomMatrix> helper_functions::energy_and_forces(AtomMatrix pos,
+                                                                  Matrix3d& cellData, size_t nAtoms,
+                                                                  Potential *pot){
   // TODO: Sanity checks, if the dynamic_cast fails it is a nullptr and so is
   // not evaluated
   // if (!pot->getName().compare("gpr_pot"s)){
   //   return helper_functions::gpr_energy_and_forces(matter, static_cast<GPRPotential*>(pot));
   // }
   // std::cout<<"Calling "<<pot->getName()<<std::endl;
-  if (auto* gppot = dynamic_cast<GPRPotential*>(pot)){
-    return helper_functions::gpr_energy_and_forces(matter, gppot);
-  }
-  int nAtoms = matter->numberOfAtoms();
-  auto posdata = matter->getPositions();
-  auto celldat = matter->getCell();
+  // if (auto* gppot = dynamic_cast<GPRPotential*>(pot)){
+  //   std::cout<<"Dynamic?";
+  //   return helper_functions::gpr_energy_and_forces(pos, nAtoms, gppot);
+  // }
   AtomMatrix forces = AtomMatrix::Constant(nAtoms, 3, 0);
-  double *pos = posdata.data();
+  double *posy = pos.data();
   double *frcs = forces.data();
-  double *bx = celldat.data();
+  double *bx = cellData.data();
   double energy{0};
-  pot->force(nAtoms, pos, nullptr, frcs, &energy, bx, 1);
+  pot->force(nAtoms, posy, nullptr, frcs, &energy, bx, 1);
   AtomMatrix finForces{forces};
-  for (int i = 0; i <nAtoms; i++){
-    if(matter->getFixed(i)){
-      finForces.row(i).setZero();
-    }
-  }
+  // for (int i = 0; i <nAtoms; i++){
+  //   if(matter->getFixed(i)){
+  //     finForces.row(i).setZero();
+  //   }
+  // }
   return std::make_pair(energy, finForces);
 }
 
-std::pair<double, AtomMatrix> helper_functions::gpr_energy_and_forces(Matter *matter, GPRPotential *gprpot){
-  int nAtoms = matter->numberOfAtoms();
-  auto posdat = matter->getPositions();
-  auto celldat = matter->getCell();
-  AtomMatrix forces = AtomMatrix::Constant(nAtoms, 3, 0);
-  auto calcEF = gprpot->force(posdat, matter->getAtomicNrs(), celldat, 1);
+std::pair<double, AtomMatrix> helper_functions::gpr_energy_and_forces(AtomMatrix pos, size_t nAtoms, GPRPotential *gprpot){
+  auto calcEF = gprpot->force(pos, nAtoms, 1);
+  // std::cout<<"Positions from matter are \n"<<posdat<<"\n";
   double potentialEnergy = std::get<double>(calcEF);
   auto finForces = std::get<AtomMatrix>(calcEF);
-  for (int i = 0; i < nAtoms; i++){
-    if(matter->getFixed(i)){
-      finForces.row(i).setZero();
-    }
-  }
+  // for (int i = 0; i < nAtoms; i++){
+  //   if(matter->getFixed(i)){
+  //     finForces.row(i).setZero();
+  //   }
+  // }
   return std::make_pair(potentialEnergy, finForces);
 }
 
@@ -395,7 +392,7 @@ gpr::Observation helper_functions::prepInitialObs(std::vector<Matter> &vecmat) {
   return resObs;
 }
 
-bool helper_functions::maybeUpdateObs(NudgedElasticBand& neb, gpr::Observation& prevObs, Parameters& params){
+bool helper_functions::maybeUpdateObs(SafeNudgedElasticBand& neb, gpr::Observation& prevObs, Parameters& params){
   // To prevent double calculations, we track the indices being compared
   // If all forces are within the convergence --> no update
   // If some images are within the convergence --> mark them as cachable (1)
@@ -405,36 +402,30 @@ bool helper_functions::maybeUpdateObs(NudgedElasticBand& neb, gpr::Observation& 
   // TODO: Handle climbingImage
   // TODO: Handle different convergence measures
   double nebConvergedForce {params.nebConvergedForce/10}, trupotdiff{0.0};
-  auto potential = Potential::getPotential(&params);
-  for (long idx {0}; idx <= neb.images+1; idx++){// excludes final, initial
-    auto true_energy_forces = helper_functions::energy_and_forces(neb.image[idx], potential);
-    trupotdiff = (neb.image[idx]->getForces() - std::get<AtomMatrix>(true_energy_forces)).norm();
-    // std::cout<<trupotdiff<<std::endl;
+  auto potential = neb.imageArray.front().getPotential();
+  for (auto& image : neb.imageArray ){
+    auto posdata = image.getPositions();
+    auto celldat = image.getCell();
+    auto true_energy_forces = helper_functions::energy_and_forces(posdata, celldat, posdata.rows(), potential);
+    trupotdiff = (image.getForces() - std::get<AtomMatrix>(true_energy_forces)).norm();
     if (trupotdiff > nebConvergedForce){
       updated = true;
-      neb.image[idx]->getPotential(); // Make sure energy is present
-      neb.image[idx]->useCache = true; // For later
+      image.getPotentialEnergy(); // Make sure energy is present
+      image.useCache = true; // For later
     };
   }
   if (updated){
-    for (long idx {0}; idx <= neb.images+1; idx++){// prepare observation
+  for (auto& image : neb.imageArray ){
       // std::cout<<"Appending to image "<<idx<<"\n";
-      prevObs.append(helper_functions::eon_matter_to_init_obs(*neb.image[idx]));
+      prevObs.append(helper_functions::eon_matter_to_init_obs(image));
       // prevObs.printSizes();
     }
   }
   return updated;
 }
 
-std::unique_ptr<NudgedElasticBand> helper_functions::prepGPRNEBround(gpr::GaussianProcessRegression& trainedGPR, Matter& reactant, Matter& product, Parameters& params){
-  GPRPotential gprPotential{&params};
-  gprPotential.registerGPRObject(&trainedGPR);
-  reactant.setPotential(&gprPotential);
-  product.setPotential(&gprPotential);
-  auto neb = std::make_unique<NudgedElasticBand>(dynamic_cast<Matter*>(&reactant), dynamic_cast<Matter*>(&product), dynamic_cast<Parameters*>(&params));
-  for (long idx {0}; idx <= neb->images+1; idx++){// includes final, initial
-    neb->image[idx]->setPotential(&gprPotential);
-  }
+std::unique_ptr<SafeNudgedElasticBand> helper_functions::prepGPRNEBround(Potential& trainedGPRPot, Matter& reactant, Matter& product, Parameters* params){
+  auto neb = std::make_unique<SafeNudgedElasticBand>(reactant, product, params);
   return neb;
 }
 

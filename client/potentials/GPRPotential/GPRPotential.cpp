@@ -63,30 +63,55 @@ void GPRPotential::initialize(void){
 void GPRPotential::cleanMemory(void){
 }
 
-std::pair<double, AtomMatrix> GPRPotential::force(AtomMatrix positions, Eigen::VectorXi atomicNrs,
-                                    Matrix3d box, int nImages){
-    // std::cout<<"Hello from GPRPot\n";
-    const int nAtoms = positions.rows();
+std::pair<double, AtomMatrix> GPRPotential::force(AtomMatrix pos, size_t nAtoms,  int nImages){
+    // const int nFreeAtoms = posFree.rows();
+    // std::cout<<"Hello from GPRPot with "<< nFreeAtoms << " free and "<<nAtoms << "\n";
     gpr::Observation obs;
     // TODO: Be better with the number of images
-    obs.clear();
-    obs.R.resize(positions.rows(), positions.cols());
-    obs.G.resize(positions.rows(), positions.cols());
-    obs.E.resize(1); // should be nImages
-    obs.R.assignFromEigenMatrix(positions);
+    obs.R.resize(1, 3 * nAtoms);
+    obs.G.resize(1, 3 * nAtoms);
+    obs.E.resize(1);
+  // for(size_t idx = 0; idx < nAtoms; idx++) {
+      obs.R.assignFromEigenMatrix(pos);
+  // }
 
+    // for (size_t idx{0}; idx < nFreeAtoms*3; ++idx){
+        // std::cout<<obs.R.extractEigenMatrix()<<" ";
+    // }
     // TODO: Benchmark this, see Potential.cpp
 
     // See GPRTrainTest.cpp for the functions to be called before this
+    // std::cout<<"Energy before GPR "<<obs.E.extractEigenMatrix()(0)<<"\n";
     this->gpr_model->calculatePotential(obs);
+    double calc_energy = obs.E.extractEigenMatrix()(0);
+    AtomMatrix calc_forces = obs.G.extractEigenMatrix() * -1;
 
-    return std::make_pair(obs.E.extractEigenMatrix()(0),
-                          obs.G.extractEigenMatrix() * -1);
+    //         double energy = 0;
+    //  AtomMatrix forces = AtomMatrix::Constant(nFreeAtoms, 3, 0);
+    // std::cout<<"Energy "<<calc_energy<<"\n";
+    return std::make_pair(calc_energy, calc_forces);
+    // return std::make_pair(energy, forces);
 }
 
 // pointer to number of atoms, pointer to array of positions	
 // pointer to array of forces, pointer to internal energy
 // adress to supercell size
 void GPRPotential::force(long N, const double *R, const int *atomicNrs, double *F, double *U, const double *box, int nImages){
-    throw std::runtime_error("whoops, you called into the wrong force call");
+    gpr::Observation obs;
+    // TODO: Be better with the number of images
+    obs.R.resize(1, 3 * N);
+    obs.G.resize(1, 3 * N);
+    obs.E.resize(1);
+    for (size_t idx{0}; idx < N*3; idx++){
+        obs.R[idx] = R[idx];
+        obs.G[idx] = 0.0;
+    }
+    this->gpr_model->calculatePotential(obs);
+    double calc_energy = obs.E.extractEigenMatrix()(0);
+    AtomMatrix calc_forces = obs.G.extractEigenMatrix() * -1;
+    *U = calc_energy;
+    std::cout<<"energy "<<*U<<"\n";
+    for (size_t idx{0}; idx < N*3; idx++){
+        F[idx] = calc_forces.data()[idx];
+    }
 }

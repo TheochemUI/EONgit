@@ -60,7 +60,9 @@ TEST_F(GPRHelpersTest, TestMatter) {
     << "Potential name is incorrect [Morse]";
   double energy_morse{0};
   AtomMatrix forces_morse = AtomMatrix::Constant(pm->numberOfAtoms(), 3, 0);
-  auto egf_morse = helper_functions::energy_and_forces(pm, &pot_morse);
+  auto pos = pm->getPositions();
+  auto celldat = pm->getCell();
+  auto egf_morse = helper_functions::energy_and_forces(pos, celldat, pos.rows(), &pot_morse);
   energy_morse = std::get<double>(egf_morse);
   forces_morse = std::get<AtomMatrix>(egf_morse);
   EXPECT_EQ(forces_morse, pm->getForces())
@@ -78,7 +80,9 @@ TEST_F(GPRHelpersTest, TestMatter) {
     << "Potential name is incorrect [LJ]";
   double energy_lj{0};
   AtomMatrix forces_lj = AtomMatrix::Constant(pljm->numberOfAtoms(), 3, 0);
-  auto egf_lj = helper_functions::energy_and_forces(pm, &ljpot);
+  pos = pljm->getPositions();
+  celldat = pljm->getCell();
+  auto egf_lj = helper_functions::energy_and_forces(pos, celldat, pos.rows(), &ljpot);
   energy_lj = std::get<double>(egf_lj);
   forces_lj = std::get<AtomMatrix>(egf_lj);
   pljm->setPotential(&ljpot);

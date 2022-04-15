@@ -9,9 +9,11 @@
 #include "Log.h"
 #include "HelperFunctions.h"
 #include "NudgedElasticBand.h"
+#include "SafeNudgedElasticBand.h"
 #include "potentials/GPRPotential/GPRPotential.h"
 #include "Potential.h"
 #include "potentials/Morse/Morse.h"
+#include "potentials/LJ/LJ.h"
 
 #include "subprojects/gprdimer/structures/Structures.h"
 #include "subprojects/gprdimer/gpr/auxiliary/ProblemSetUp.h"
@@ -59,7 +61,9 @@ namespace helper_functions {
      *  \param matter The object with coordinates
      *  \param pot The potential energy to use
      * */
-    std::pair<double, AtomMatrix> energy_and_forces(Matter *matter, Potential *pot);
+    std::pair<double, AtomMatrix> energy_and_forces(AtomMatrix pos,
+                                                    Matrix3d& cellData, size_t nAtoms,
+                                                    Potential *pot);
 
     /**
      * \brief Call a GPR-EON potential from a matter object
@@ -67,7 +71,7 @@ namespace helper_functions {
      *  \param matter The object with coordinates
      *  \param pot The trained GPR to use
      * */
-    std::pair<double, AtomMatrix> gpr_energy_and_forces(Matter* matter, GPRPotential* gprpot);
+    std::pair<double, AtomMatrix> gpr_energy_and_forces(AtomMatrix pos, size_t nAtoms, GPRPotential *gprpot);
 
     /**
      * \brief Generate a conf_info object from a matter object
@@ -125,7 +129,7 @@ namespace helper_functions {
      *  \param neb
      *  \return bool
      */
-    bool maybeUpdateObs(NudgedElasticBand& neb, gpr::Observation& prevObs, Parameters& params);
+    bool maybeUpdateObs(SafeNudgedElasticBand& neb, gpr::Observation& prevObs, Parameters& params);
 
     /**
      * \brief Returns a unique pointer to an NEB for the GPR-NEB
@@ -135,7 +139,7 @@ namespace helper_functions {
      * The unique pointer ensures in a loop, the NEB objects are destroyed
      * \param
      */
-     std::unique_ptr<NudgedElasticBand> prepGPRNEBround(gpr::GaussianProcessRegression& trainedGPR, Matter& reactant, Matter& product, Parameters& params);
+     std::unique_ptr<SafeNudgedElasticBand> prepGPRNEBround(Potential& trainedGPRPot, Matter& reactant, Matter& product, Parameters* params);
 
     /**
      * \brief Initializes a GPR potential

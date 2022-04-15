@@ -104,6 +104,10 @@ std::pair<double, AtomMatrix> Matter::maybe_cached_energy_forces(){
     }
 }
 
+Parameters* Matter::getParameters() const{
+    return this->parameters;
+}
+
 std::pair<double, AtomMatrix> Matter::maybe_cached_energy_forces_free(){
     if (this->useCache){
         useCache = false;
@@ -159,9 +163,9 @@ Matter::Matter(const Matter& matter)
 
 Matter::~Matter()
 {
-//    if (potential!=NULL){
-//        delete potential;
-//    }
+   // if (potential!=nullptr){
+   //     delete potential;
+   // }
 }
 
 
@@ -977,12 +981,7 @@ void Matter::computePotential()
         }
 
         // TODO: Handle the number of system images better
-#ifdef WITH_GPRD
-        auto calcEF = helper_functions::energy_and_forces(this, potential);
-#endif
-#ifndef WITH_GPRD
         auto calcEF = potential->force(positions, atomicNrs, cell, 1);
-#endif
         potentialEnergy = std::get<double>(calcEF);
         forces = std::get<AtomMatrix>(calcEF);
         forceCalls = forceCalls+1;

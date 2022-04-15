@@ -75,7 +75,8 @@ public:
     void setBiasForces(const AtomMatrix bf);
     void setBiasPotential(BondBoost *bondBoost);
     void setForces(const AtomMatrix f);
-    AtomMatrix getAccelerations(); 
+    AtomMatrix getAccelerations();
+    Parameters* getParameters() const;
 
     AtomMatrix getForces(); // return forces applied on all atoms in array force
     AtomMatrix getBiasForces();

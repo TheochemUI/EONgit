@@ -79,7 +79,7 @@ TEST_F(NEBJobGPRTest, TestMatter) {
   double blah = matterTest->getPotentialEnergy();
   std::cout<<matterTest->getPotentialEnergy()<<" Matter at Test point\n";
   // RUN NEB!!!
-  NudgedElasticBand *neb = new NudgedElasticBand(matterOne.get(), matterFin.get(), this->gprparameon.get());
+  SafeNudgedElasticBand *neb = new SafeNudgedElasticBand(*matterOne, *matterFin, this->gprparameon.get());
   neb->compute();
   bool mustUpdate = helper_functions::maybeUpdateObs(*neb, obspath, eonp);
   this->gprfunc->setHyperparameters(obspath, atoms_config, false);
@@ -90,16 +90,17 @@ TEST_F(NEBJobGPRTest, TestMatter) {
   while(mustUpdate){
     this->gprfunc->setHyperparameters(obspath, atoms_config, false);
     this->gprfunc->optimize(obspath);
-    auto nebTwo = helper_functions::prepGPRNEBround(*this->gprfunc,
+    auto nebTwo = helper_functions::prepGPRNEBround(gprpot,
                                                 *matterOne, *matterFin,
-                                                *this->gprparameon);
+                                                this->gprparameon.get());
     nebTwo->compute();
     mustUpdate = helper_functions::maybeUpdateObs(*nebTwo, obspath, eonp);
   };
   // Final round
-    auto nebFin = helper_functions::prepGPRNEBround(*this->gprfunc,
+    gprpot.registerGPRObject(this->gprfunc.get());
+    auto nebFin = helper_functions::prepGPRNEBround(gprpot,
                                                 *matterOne, *matterFin,
-                                                *this->gprparameon);
+                                                this->gprparameon.get());
     nebFin->compute();
     delete neb;
 }
