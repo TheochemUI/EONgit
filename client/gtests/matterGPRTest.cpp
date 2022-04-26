@@ -178,6 +178,23 @@ matterGPRTest::~matterGPRTest() {
     EXPECT_NEAR((gp_testp.truePotMatter.getForcesFree()-testp.getForcesFree()).norm(), 0, this->threshold)<<"GPRMatter internal object forces don't match true forces";
     }
 
+    TEST_F(matterGPRTest, checkVariances){
+    // Setup the Matter objects
+    Matter reactant{&params}, product{&params}, testp{&params};
+    reactant.con2matter(reactantFilename);
+    product.con2matter(productFilename);
+    testp.con2matter(productFilename);
+    testp.setPositions((reactant.getPositions()*10.01) / 2);
+    // Setup the observations
+    auto imgArray = helper_functions::prepInitialPath(&params);
+    // Setup GPR
+    auto gpf = std::make_shared<GPRobj>(reactant, params);
+    gpf->trainGPR(imgArray);
+    // Setup GPRMatter
+    GPRMatter gp_testp{testp, gpf}, gp_reactant{reactant, gpf}, gp_prod{product, gpf};
+    gpf->pef_variances_at(reactant);
+    }
+
     // TEST_F(matterGPRTest, insertIntoMatter){
     // // Setup the Matter objects
     // Matter reactant{&params}, product{&params}, testp{&params};

@@ -580,6 +580,7 @@ int Parameters::load(FILE *file){
         // GPR Params
         truePotential = toLowerCase(ini.GetValue("GPR Potential", "true_potential"));
         gprPotTol = ini.GetValueF("GPR Potential", "gpr_pot_tol", gprPotTol);
+        gprPotMaxMoveFactor = ini.GetValueF("GPR Potential", "gpr_max_move_factor", gprPotMaxMoveFactor);
         gprPotActiveRadius = ini.GetValueF("GPR Potential", "active_radius", gprActiveRadius);
         gprPotHyperOptMethod = ini.GetValue("GPR Potential", "hyperparameter_opt_method", gprPotHyperOptMethod);
         gprPotSigma2 = ini.GetValueF("GPR Potential", "gpr_variance", gprPotSigma2);

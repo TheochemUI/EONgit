@@ -18,6 +18,7 @@ public:
     ~SteepestDescent();
 
     int step(double maxMove);
+    int step(const double maxMove, const std::vector<Matter> prevPath, bool& notStoppedEarly);
     int run(int maxIterations, double maxMove);
 
 private:

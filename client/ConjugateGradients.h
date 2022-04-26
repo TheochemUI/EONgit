@@ -40,6 +40,7 @@ class ConjugateGradients : public Optimizer
  	 * \return whether or not the algorithm has converged
  	 */
         int step(double maxMove);
+        int step(const double maxMove, const std::vector<Matter> prevPath, bool& notStoppedEarly);
 	//! Runs the conjugate gradient 
 	/**
  	 * \todo method should also return an error code and message if the algorithm errors out

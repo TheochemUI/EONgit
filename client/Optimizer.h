@@ -38,6 +38,7 @@ class Optimizer
         virtual ~Optimizer(){};
 	//! Template for stepping the optimizer, returns convergence
         virtual int step(double maxMove) = 0;
+        virtual int step(const double maxMove, std::vector<Matter> prevPath, bool& notStoppedEarly)=0;
 	//! Template for runnning the optimizer; uses a series of steps, checking for convergence each time
         virtual int run(int maxIterations, double maxMove) = 0;
         //! Grabs the correct optimizer as specified by the parameters

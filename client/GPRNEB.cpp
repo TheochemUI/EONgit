@@ -46,7 +46,6 @@ class GPRNEBObjectiveFunction : public ObjectiveFunction
             posV.resize(3 * gpneb->nfree * gpneb->nimages);
             for (size_t idx{1}; idx < gpneb->imageArray.size()-1; idx++){
                 auto image = gpneb->imageArray[idx];
-                auto pe_forces = image.gpr_energy_forces();
                 // NOTE: Free positions ONLY?
                 posV.segment(3*gpneb->nfree*(idx-1), 3*gpneb->nfree) = VectorXd::Map(image.truePotMatter.getPositionsFree().data(), 3*gpneb->nfree);
             }
@@ -64,6 +63,10 @@ class GPRNEBObjectiveFunction : public ObjectiveFunction
         int degreesOfFreedom() { return 3*gpneb->nimages*gpneb->nfree; }
 
         bool isConverged() { return getConvergence() < this->threshold; }
+
+        bool isConvergedOrStoppedEarly() {
+            return isConverged() || this->stoppedEarly;
+        }
 
         double getConvergence() { return gpneb->convergenceForce(); }
 
@@ -114,7 +117,7 @@ GPRNEB::~GPRNEB()
 }
 
 
-int GPRNEB::compute()
+int GPRNEB::compute(const std::vector<Matter> prevPath)
 {
     int status = 0;
     long iteration = 0;
@@ -126,6 +129,7 @@ int GPRNEB::compute()
     GPRNEBObjectiveFunction objf(this, &this->params);
 
     Optimizer *optimizer = Optimizer::getOptimizer(&objf, &this->params);
+    bool notStoppedEarly{true};
 
     const char *forceLabel = this->params.optConvergenceMetricLabel.c_str();
     log("%10s %12s %14s %11s %12s\n", "iteration", "step size", forceLabel, "max image", "max energy");
@@ -134,7 +138,7 @@ int GPRNEB::compute()
     char fmt[] = "%10li %12.4e %14.4e %11li %12.4f\n";
     char fmtTiny[] = "%10li %12.4e %14.4e %11li %12.4e\n";
 
-    while (!objf.isConverged())
+    while (!objf.isConverged() && notStoppedEarly)
     {
         if (this->params.writeMovies) {
             bool append = true;
@@ -148,7 +152,11 @@ int GPRNEB::compute()
                 status = STATUS_BAD_MAX_ITERATIONS;
                 break;
             }
-            optimizer->step(this->params.optMaxMove);
+            optimizer->step(this->params.optMaxMove, prevPath, notStoppedEarly);
+            if (!notStoppedEarly){
+                std::cout<<"Handling early stopping from optimizer";
+                return -9;
+            }
         }
         iteration++;
 
@@ -170,7 +178,7 @@ int GPRNEB::compute()
     }
 
     printImageData();
-    findExtrema();
+    findExtremaTrue();
 
     delete optimizer;
     return status;
@@ -545,6 +553,44 @@ void GPRNEB::printImageData(bool writeToFile, size_t gpr_id)
         fclose(fh);
     }
 }
+void GPRNEB::printImageDataTrue(bool writeToFile, size_t gpr_id)
+{
+    double dist, distTotal=0;
+    AtomMatrix tangentStart = imageArray.front().truePotMatter.pbc(imageArray[1].truePotMatter.getPositions() - imageArray.front().truePotMatter.getPositions());
+    AtomMatrix tangentEnd = imageArray[nimages].truePotMatter.pbc(imageArray.back().truePotMatter.getPositions() - imageArray[nimages].truePotMatter.getPositions());
+    AtomMatrix tang;
+
+    log("Image data (as in neb.dat)\n");
+
+    FILE *fh=NULL;
+    if (writeToFile) {
+        auto fname = fmt::format("neb_gpr_{}.dat", gpr_id);
+        fh = fopen(fname.c_str(), "w");
+    }
+
+    for(size_t idx{0}; idx <= nimages+1; idx++)
+    {
+        if(idx==0){ tang = tangentStart; }
+        else if (idx==nimages+1) { tang = tangentEnd; }
+        else { tang = tangentArray[idx]; }
+        if(idx>0) {
+            dist = imageArray[idx].truePotMatter.distanceTo(imageArray[idx-1].truePotMatter);
+            distTotal += dist;
+        }
+        auto pef_cur = this->imageArray[idx].true_energy_forces();
+        auto pef_init = this->imageArray.front().true_energy_forces();
+        if (fh == NULL) {
+            log("%3li %12.6f %12.6f %12.6f\n", idx, distTotal,
+                std::get<double>(pef_cur)-std::get<double>(pef_init), (std::get<AtomMatrix>(pef_cur).array()*tang.array()).sum());
+        }else{
+            fprintf(fh, "%3li %12.6f %12.6f %12.6f\n",idx,distTotal,
+                std::get<double>(pef_cur)-std::get<double>(pef_init), (std::get<AtomMatrix>(pef_cur).array()*tang.array()).sum());
+        }
+    }
+    if (writeToFile) {
+        fclose(fh);
+    }
+}
 
 // Estimate the barrier using a cubic spline
 void GPRNEB::findExtrema()
@@ -693,15 +739,15 @@ void GPRNEB::findExtremaTrue()
         auto pef_f1 = this->imageArray[idx].true_energy_forces();
         auto pef_f2 = this->imageArray[idx+1].true_energy_forces();
         if(idx==0) {
-            tangentEndpoint = imageArray[idx].truePotMatter.pbc(imageArray[1].truePotMatter.getPositionsFree() -
-                                                                imageArray.front().truePotMatter.getPositionsFree());
+            tangentEndpoint = imageArray[idx].truePotMatter.pbc(imageArray[1].truePotMatter.getPositions() -
+                                                                imageArray.front().truePotMatter.getPositions());
             tangentEndpoint.normalize();
             F1 = (std::get<AtomMatrix>(pef_f1).array()*tangentEndpoint.array()).sum()*dist;
         } else {
             F1 = (std::get<AtomMatrix>(pef_f1).array()*(tangentArray[idx]).array()).sum()*dist;
         }
         if(idx==nimages) {
-            tangentEndpoint =  imageArray[idx+1].truePotMatter.pbc(imageArray[nimages+1].truePotMatter.getPositionsFree() - imageArray[nimages].truePotMatter.getPositionsFree());
+            tangentEndpoint =  imageArray[idx+1].truePotMatter.pbc(imageArray[nimages+1].truePotMatter.getPositions() - imageArray[nimages].truePotMatter.getPositions());
             tangentEndpoint.normalize();
             F2 = (std::get<AtomMatrix>(pef_f2).array()*tangentEndpoint.array()).sum()*dist;
         } else {
@@ -782,6 +828,7 @@ bool GPRNEB::stoppedEarly(std::vector<Matter> prevPath, double max_dist_factor){
     bool noEarlyStopping{false};
     double max_dist = max_dist_factor * this->init_path_length;
     auto curpath = this->getCurPath();
+    // NOTE: Assumes prevPath includes endpoints
     for (size_t idx{1}; idx < prevPath.size()-1; idx++){
     auto img = prevPath[idx];
     std::vector<double> distances;
@@ -822,6 +869,22 @@ std::vector<Matter> GPRNEB::getCurPath(){
     // NOTE: Intermediates only, assumes relaxed final, end points
     for (size_t idx{1}; idx < this->imageArray.size()-1; idx++){
         matvec.push_back(imageArray[idx].truePotMatter);
+    }
+    return matvec;
+}
+
+std::vector<Matter> GPRNEB::getEarlyStoppingPath(std::vector<Matter> prevIntermediates, double max_dist_factor){
+    std::vector<Matter> matvec;
+    double max_dist = max_dist_factor * this->init_path_length;
+    auto curpath = this->getCurPath();
+    // NOTE: Assumes prevPath does not includes endpoints
+    for (auto& prev : prevIntermediates){
+        for (auto cur : curpath){
+            double dist = cur.distanceTo(prev);
+            if (dist != 0 && dist < max_dist){
+                matvec.push_back(cur);
+            }
+        }
     }
     return matvec;
 }

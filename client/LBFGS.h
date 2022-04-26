@@ -19,9 +19,11 @@ public:
     ~LBFGS();
 
     int step(double maxMove);
+    int step(const double maxMove, std::vector<Matter> prevPath, bool& notStoppedEarly);
     int run(int maxIterations, double maxMove);
     int update(VectorXd r1, VectorXd r0, VectorXd f1, VectorXd f0);
     void reset(void);
+    bool stoppedEarly();
 
 private:
     VectorXd getStep(double maxMove, VectorXd f);

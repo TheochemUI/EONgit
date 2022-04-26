@@ -8,6 +8,10 @@
 #include "Parameters.h"
 
 #include <memory>
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <fmt/os.h>
 
 class GPRobj {
     private:
@@ -22,6 +26,7 @@ class GPRobj {
         ~GPRobj(); // Destructor
         void trainGPR(std::vector<Matter>& initialPoints);
         void retrainGPR(std::vector<Matter>& newPoints);
+        std::pair<double, AtomMatrix> pef_variances_at(Matter& mat);
         GPRPotential yieldGPRPot();
 };
 
@@ -36,6 +41,7 @@ class GPRMatter {
         GPRMatter(Matter& initMatter, std::shared_ptr<GPRobj> gpf);
         ~GPRMatter(); // Destructor
         std::pair<double, AtomMatrix> gpr_energy_forces();
+        std::pair<double, AtomMatrix> gpr_variances_energy_forces();
         std::pair<double, AtomMatrix> true_free_energy_forces();
         std::pair<double, AtomMatrix> true_energy_forces();
         bool areEnergiesCloseToTrue(double eps = 1e-3);
@@ -72,4 +78,10 @@ namespace helper_functions {
                 return std::abs(a) < std::abs(b);
         }
 
+    void printGPRsurface(
+        // const std::pair<double, double>xrange,
+        //                  const std::pair<double, double>yrange,
+        //                  const double delta,
+                         const std::shared_ptr<GPRobj>,
+                         const size_t nid);
 } // namespace helper_functions

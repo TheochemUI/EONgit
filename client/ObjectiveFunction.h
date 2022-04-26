@@ -14,6 +14,7 @@
 class ObjectiveFunction
 {
     public:
+        ObjectiveFunction(): stoppedEarly{false}{};
         virtual ~ObjectiveFunction() {}
         virtual double getEnergy()=0;
         virtual VectorXd getGradient(bool fdstep=false)=0;
@@ -23,6 +24,7 @@ class ObjectiveFunction
         virtual bool isConverged()=0;
         virtual double getConvergence()=0;
         virtual VectorXd difference(VectorXd a, VectorXd b)=0;
+        bool stoppedEarly;
 };
 
 #endif

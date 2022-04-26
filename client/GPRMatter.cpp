@@ -146,6 +146,24 @@ GPRPotential GPRobj::yieldGPRPot(){
     return gppot;
 }
 
+std::pair<double, AtomMatrix> GPRobj::pef_variances_at(Matter& mat){
+  // TODO: Caching
+  gpr::Observation observation;
+  auto R = mat.getPositionsFree();
+  size_t N = mat.numberOfFreeAtoms();
+    observation.R.resize(1, N * 3);
+  for(size_t idx{0}; idx < N; idx++){
+    observation.R.set(idx, {R.data()[ 3*idx ], R.data()[3*idx+1], R.data()[3*idx+2]});
+  }
+  this->gprfunc.calculateVariance(observation);
+  observation.printSizes();
+  std::cout<<"The Observation is:\n";
+  std::cout<<"G variance is "<<observation.G[0]<< " "<<observation.G[1]<<" "<<observation.G[2]<<std::endl;
+  std::cout<<"E variance is "<<observation.E[0]<<std::endl;
+  return std::make_pair(mat.getPotentialEnergy(),
+                        mat.getForcesFree());
+}
+
 bool helper_functions::maybeUpdateGPRobj(NudgedElasticBand& neb, std::shared_ptr<GPRobj>& gpf){
   size_t totalImages(neb.images+2);
   bool result{false};
@@ -199,3 +217,43 @@ std::vector<GPRMatter> helper_functions::prepGPRMatterVec(std::vector<Matter>& n
   }
   return gpmvec;
 }
+
+    void helper_functions::printGPRsurface(
+      // const std::pair<double, double>xrange,
+      //                    const std::pair<double, double>yrange,
+      //                    const double delta,
+                         const std::shared_ptr<GPRobj> gpf,
+                         const size_t nid){
+      auto fname = fmt::format("gpr_surface_{}.dat", nid);
+      auto out = fmt::output_file(fname);
+      std::ofstream outf{ fname };
+      double xmin{7.545}, ymin{7.523}, xmax{11.660}, ymax{13.074};
+      const double zlevel {14.5845};
+      std::vector<double> xrange(50), yrange(50);
+      xrange.front() = xmin;
+      xrange.back() = xmax;
+      yrange.front() = ymin;
+      yrange.back() = ymax;
+      double xdelta = (xmax - xmin) / 50;
+      double ydelta = (ymax - ymin) / 50;
+      double xtmp{xmin}, ytmp{ymin};
+      std::generate(xrange.begin(), xrange.end(), [&]{ xtmp = xtmp + xdelta; return xtmp; });
+      std::generate(yrange.begin(), yrange.end(), [&]{ ytmp = ytmp + ydelta; return ytmp; });
+      Parameters *parameters = new Parameters;
+      parameters->potential = "morse_pt";
+      out.print("xval\t yval\t zval\t gpr_energy\t true_energy\n");
+      for (size_t xtick{0}; xtick < 50; xtick++){
+        for (size_t ytick{0}; ytick < 50; ytick++){
+          Matter matter(parameters);
+          matter.con2matter("reactant.con");
+          Vector3d pos{xrange[xtick], yrange[ytick], zlevel};
+          matter.setPositionsFreeV(pos);
+          GPRMatter gpmat(matter, gpf);
+          double etrue = matter.getPotentialEnergy();
+          double egpr = std::get<double>(gpmat.gpr_energy_forces());
+          auto fmstring = fmt::format("{}\t {}\t {}\t {}\t {}\n",
+                                      pos[0], pos[1], pos[2], egpr, etrue);
+          out.print(fmstring);
+        }
+      }
+    }

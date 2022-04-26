@@ -13,7 +13,7 @@ LBFGS::LBFGS(ObjectiveFunction *objfPassed, Parameters *parametersPassed)
     iteration = 0;
 
     //Shouldn't have a memory longer than the number of degrees of freedom.
-    memory = min(objf->degreesOfFreedom(), (int)parameters->optLBFGSMemory);
+    memory = min(objf->degreesOfFreedom(), static_cast<int>(parameters->optLBFGSMemory));
 }
 
 LBFGS::~LBFGS()
@@ -155,6 +155,29 @@ int LBFGS::step(double maxMove)
     return 0;
 }
 
+// Previous path must be the full one, including endpoints
+int LBFGS::step(const double maxMove, const std::vector<Matter> prevPath, bool& notStoppedEarly){
+    int stepval = step(maxMove);
+    size_t nfree = prevPath.front().numberOfFreeAtoms();
+    VectorXd curPath = objf->getPositions();
+    AtomMatrix curPoint = AtomMatrix::Constant(nfree, 3, 0);
+    AtomMatrix prevPoint = AtomMatrix::Constant(nfree, 3, 0);
+    double diff{-1};
+    for (size_t idx{1}; idx < prevPath.size()-1; idx++){
+        curPoint = AtomMatrix::Map(curPath.segment(3*nfree*(idx-1), 3*nfree).data(), nfree, 3);
+        prevPoint = prevPath[idx].getPositionsFree();
+        auto diff = (prevPoint - curPoint).norm();
+        if (diff <= 0.9){
+            notStoppedEarly = true;
+        } else {
+            notStoppedEarly = false;
+            std::cout<<"EARLY STOPPING FROM OPTIMIZER\n";
+            return stepval;
+        }
+    }
+    return stepval;
+}
+
 
 int LBFGS::run(int maxSteps, double maxMove)
 {
@@ -167,4 +190,8 @@ int LBFGS::run(int maxSteps, double maxMove)
     return 0;
 
 //    return objf->isConverged();
+}
+
+bool LBFGS::stoppedEarly(){
+    return this->objf->stoppedEarly;
 }

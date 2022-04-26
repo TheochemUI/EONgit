@@ -23,10 +23,11 @@ class GPRNEB{
     GPRNEB(std::vector<GPRMatter> initPath, Parameters params);
     ~GPRNEB();
     void clean();
-    int compute();
+    int compute(const std::vector<Matter> prevPath);
     double convergenceForce();
     void findExtrema();
     void printImageData(bool writeToFile = false, size_t gpr_id = 0);
+    void printImageDataTrue(bool writeToFile = false, size_t gpr_id = 0);
     void findExtremaTrue();
     void printImageDataTrue(bool writeToFile = false);
 
@@ -45,11 +46,15 @@ class GPRNEB{
     std::vector<double> extremumPositions;
     std::vector<double> extremumCurvatures;
     bool needsRetraining(double eps = 1e-3);
-    bool stoppedEarly(std::vector<Matter> prevPath, double max_dist_factor = 0.5);
-    bool notStoppedEarly(std::vector<Matter> prevPath, double max_dist_factor = 0.5);
+    bool stoppedEarly(std::vector<Matter> prevPath,
+                      double max_dist_factor = 0.5);
+    bool notStoppedEarly(std::vector<Matter> prevPath,
+                         double max_dist_factor = 0.5);
     // This returns a Matter vector for retraining
     std::vector<Matter> getCurPath();
     std::vector<Matter> getCurPathFull();
+    std::vector<Matter> getEarlyStoppingPath(std::vector<Matter> prevIntermediates,
+                                             double max_dist_factor = 0.5);
     // These are outer loop helpers
     double getTrueConvForce();
 };

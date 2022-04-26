@@ -108,6 +108,7 @@ NudgedElasticBand::NudgedElasticBand(Matter *initialPassed, Matter *finalPassed,
     AtomMatrix imageSep = image[0]->pbc(posFinal-posInitial)/(images+1);
     for(long i=1; i<=images; i++) {
         image[i]->setPositions(posInitial+imageSep*double(i));
+        std::cout<<image[i]->getPotentialEnergy()-image[0]->getPotentialEnergy()<<" ";
     }
 
     movedAfterForceCall = true;
