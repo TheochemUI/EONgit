@@ -227,13 +227,17 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
 }
 
 gpr::Observation helper_functions::eon_matter_to_init_obs(Matter *matter) {
-  gpr::Observation o;
-  o.clear();
-  o.R.resize(matter->getPositions().rows(),matter->getPositions().cols());
-  o.G.resize(matter->getForces().rows(),matter->getForces().cols());
-  o.E.resize(1);
-  o.E.set(matter->getPotentialEnergy());
-  o.R.assignFromEigenMatrix(matter->getPositions());
-  o.G.assignFromEigenMatrix(matter->getForces());
-  return o;
+  gpr::Observation obs;
+  obs.clear();
+  gpr::EigenMatrix positions = matter->getPositions();
+  gpr::EigenMatrix forces = matter->getForces();
+  obs.R.resize(1, positions.size());
+  obs.G.resize(1, forces.size());
+  obs.E.resize(1);
+  obs.E.set(matter->getPotentialEnergy());
+  for (size_t idx{0}; idx < positions.size(); idx++){
+    obs.R(0, idx) = positions.reshaped<Eigen::RowMajor>()[idx];
+    obs.G(0, idx) = -1*forces.reshaped<Eigen::RowMajor>()[idx];
+  }
+  return obs;
 }
