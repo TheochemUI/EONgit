@@ -278,3 +278,11 @@ std::vector<Matter> helper_functions::prepInitialPath(
     imageArray.push_back(finalmatter);
     return imageArray;
 }
+
+gpr::Observation helper_functions::prepInitialObs(std::vector<Matter> &vecmat) {
+  gpr::Observation resObs;
+  for (auto& mat : vecmat){
+    resObs.append(helper_functions::eon_matter_to_init_obs(mat));
+  }
+  return resObs;
+}
