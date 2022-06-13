@@ -216,6 +216,40 @@ Parameters::Parameters(){
     gprDebugDy = 0.1; // debug_dy
     gprDebugDz = 0.1; // debug_dz
 
+    // [GPR Potential] //
+    truePotential = "morse_pt"; // reasonable default
+    // GPR Params
+    gprPotActiveRadius = 5.0; // actidst_fro
+    gprPotHyperOptMethod = "scg"; // optimization_alg
+    gprPotSigma2 = 1e-8; // gp_sigma2
+    gprPotJitterSigma2 = 0; // jitter_sigma2
+    gprPotNoiseSigma2 = 1e-8; // sigma2
+    gprPotPriorMu = 0; // prior_mu
+    gprPotPriorSigma2 = 1; //prior_s2
+    gprPotPriorNu = 20; // prior_nu
+    gprPotconstSigma2 = 0.0; // constSigma2
+    gprPotmagnSigma2 = 6.93874748072254e-009; // magnSigma2
+    gprPotTol = 1e-3; // gpr_pot_tol
+    // GPR Optimization Parameters
+    gprPotOptCheckDerivatives = false; // check_derivative
+    gprPotOptMaxIterations = 400; // max_iter
+    gprPotOptTolFunc = 1e-4; // tolerance_func
+    gprPotOptTolSol = 1e-4; // tolerance_sol
+    gprPotOptLambdaLimit = 1e17; // lambda_limit
+    gprPotOptLambdaInit = 10.0; // lambda
+    earlyStoppingFactor = 0.5; // % of path length
+    spConvergence = 0.01;
+    mepConvergence = 0.5;
+    toggleCI = false;
+    printSurfaces = false; // turning it on slows things down a lot
+    psXmin = 0.0;
+    psYmin = 0.0;
+    psXmax = 10.0;
+    psYmax = 10.0;
+    psZlvl = 0.0;
+    psXnelem = 5;
+    psYnelem = 5;
+
     // [Hessian] //
     hessianAtomList = string("All");
     hessianZeroFreqValue = 1e-6;

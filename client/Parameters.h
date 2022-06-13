@@ -211,6 +211,37 @@ public:
     double gprDebugDy; // {debug_dy}
     double gprDebugDz; // {debug_dz}
 
+    // [GPR Potential] //
+    string truePotential;
+    double gprPotActiveRadius; // activation radius for inclusion in covariance matrix {actdist_fro}
+    string gprPotHyperOptMethod; // method to optimize hyperparameters {optimization_alg}
+    double gprPotSigma2; // GPR variance {gp_sigma2}
+    double gprPotJitterSigma2; // GPR jitter variance {jitter_sigma2}
+    double gprPotNoiseSigma2; // noise Variance {sigma2}
+    double gprPotPriorMu; // prior mean {prior_mu}
+    double gprPotPriorSigma2; // prior variance {prior_s2}
+    long gprPotPriorNu; // prior degrees of freedom {prior_nu}
+    bool gprPotOptCheckDerivatives; // {check_derivative}
+    int gprPotOptMaxIterations; // {max_iter}
+    double gprPotTol; // {tolerance_func}
+    double gprPotOptTolFunc; // {tolerance_func}
+    double gprPotOptTolSol; // {tolerance_sol}
+    long gprPotOptLambdaLimit; // {lambda_limit}
+    long gprPotOptLambdaInit; // {lambda}
+    double gprPotmagnSigma2; // {magnSigma2}
+    double gprPotconstSigma2; // {constSigma2}
+    double earlyStoppingFactor; // TODO: Move to GPR NEB, determines the % of path length
+    bool printSurfaces; // Enables printing out GPR and True surfaces
+    double psXmin; // x_min for the slicer
+    double psYmin; // y_min for the slicer
+    double psXmax; // x_max for the slicer
+    double psYmax; // y_max for the slicer
+    double psZlvl; // z level for the slicer
+    size_t psXnelem; // x elements for slicer
+    size_t psYnelem; // x elements for slicer
+    double spConvergence; // Saddle point force convergence
+    double mepConvergence; // Minimum energy path force convergence
+    bool toggleCI; // Toggles the CI when lower than sp
 
     // [Lanczos] //
     double lanczosTolerance; // difference between the lowest eignevalues of two successive iterations

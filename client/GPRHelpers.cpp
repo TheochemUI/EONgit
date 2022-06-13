@@ -59,6 +59,28 @@ helper_functions::eon_parameters_to_gpr(Parameters *parameters) {
   return p;
 }
 
+gpr::InputParameters
+helper_functions::eon_parameters_to_gprpot(Parameters *parameters) {
+  gpr::InputParameters p;
+  // Problem parameters
+  p.actdist_fro.value = parameters->gprPotActiveRadius;
+  // GPR Parameters
+  p.gp_sigma2.value = parameters->gprPotSigma2;
+  p.jitter_sigma2.value = parameters->gprPotJitterSigma2;
+  p.sigma2.value = parameters->gprPotNoiseSigma2;
+  p.prior_mu.value = parameters->gprPotPriorMu;
+  p.prior_s2.value = parameters->gprPotPriorSigma2;
+  p.prior_nu.value = parameters->gprPotPriorNu;
+  p.check_derivative.value = parameters->gprPotOptCheckDerivatives;
+  p.max_iter.value = parameters->gprPotOptMaxIterations;
+  p.tolerance_func.value = parameters->gprPotOptTolFunc;
+  p.tolerance_sol.value = parameters->gprPotOptTolSol;
+  p.lambda_limit.value = parameters->gprPotOptLambdaLimit;
+  p.lambda.value = parameters->gprPotOptLambdaInit;
+  p.magnSigma2.value = parameters->gprPotmagnSigma2;
+  p.constSigma2.value = parameters->gprPotconstSigma2;
+  return p;
+}
 // FIXME: Take in the active / inactive pairs / atomtypes
 gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) {
   //   AtomsConfiguration a;
