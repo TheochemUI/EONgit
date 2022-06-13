@@ -33,9 +33,9 @@ namespace helper_functions {
      * actually append or handle the Observation structure other than for
      * initialization of atomic gp dimer
      *
-     * @param *Matter An EON Matter object
+     * @param matter An EON Matter object
      */
-    gpr::Observation eon_matter_to_init_obs(Matter *matter);
+    gpr::Observation eon_matter_to_init_obs(Matter& matter);
 
     /**
      * \brief Setup initial path

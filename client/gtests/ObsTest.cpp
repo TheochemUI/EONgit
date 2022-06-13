@@ -30,7 +30,7 @@ TEST_F(ObsTest, TestMatter) {
   parameters->potential = "morse_pt";
   Matter *matter = new Matter(parameters);
   matter->con2matter(confile);
-  gpr::Observation o = helper_functions::eon_matter_to_init_obs(matter);
+  gpr::Observation o = helper_functions::eon_matter_to_init_obs(*matter);
   EXPECT_EQ(o.R.extractEigenMatrix().reshaped<Eigen::RowMajor>(matter->numberOfAtoms(), 3), matter->getPositions()) // Figure out the right approach..
       << "Positions do not match";
   EXPECT_EQ((o.G.extractEigenMatrix()*-1).reshaped<Eigen::RowMajor>(matter->numberOfAtoms(), 3), matter->getForces())
