@@ -277,4 +277,29 @@ if get_option('with_gprd')
                   cpp_args : eon_extra_args,
                  )
       )
+  test('Atomic Configuration test',
+       executable('atomsconf',
+                  'gtests/AtomsConfigurationTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+  test('Improved Dimer test',
+       executable('impdt',
+                  'gtests/ImpDimerTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+  # Takes too long
+  # test('GPR Dimer test',
+  #      executable('gprdt',
+  #                 'gtests/GPRDimerTest.cpp',
+  #                 link_with : eonlib,
+  #                 dependencies: gptest_dets,
+  #                 cpp_args : eon_extra_args,
+  #                )
+  #     )
 endif
