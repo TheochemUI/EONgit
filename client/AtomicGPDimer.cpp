@@ -32,17 +32,14 @@ AtomicGPDimer::~AtomicGPDimer() { delete matterCenter; }
 
 void AtomicGPDimer::compute(Matter *matter,
                             AtomMatrix initialDirectionAtomMatrix) {
-  atoms_config = helper_functions::eon_matter_to_atmconf(matter);
+  atoms_config = helper_functions::eon_matter_to_atmconf(*matter);
   *matterCenter = *matter;
   // R_init.resize(1, matterCenter->getPositionsFree().size());
   // R_init.assignFromEigenMatrix(matterCenter->getPositionsFreeV());
-R_init.resize(1, matterCenter->getPositionsFree().rows() *
-                matterCenter->getPositionsFree().cols());
-  int counter = 0;
-  for(int i = 0; i < matterCenter->getPositionsFree().rows(); ++i) {
-    for(int j = 0; j < matterCenter->getPositionsFree().cols(); ++j) {
-      R_init[counter++] = matterCenter->getPositionsFree()(i, j);
-    }
+  auto freePos = matterCenter->getPositionsFree();
+  R_init.resize(1, freePos.size());
+  for (size_t idx{0}; idx < freePos.size(); idx++){
+    R_init(0, idx) = freePos.reshaped<Eigen::RowMajor>()[idx];
   }
   init_middle_point.clear();
   init_middle_point.R = R_init;
@@ -66,14 +63,10 @@ R_init.resize(1, matterCenter->getPositionsFree().rows() *
         }
     }
   // orient_init.assignFromEigenMatrix(freeOrient);
-orient_init.resize(1, freeOrient.rows() *
-                freeOrient.cols());
-  counter = 0;
-  for(int i = 0; i < freeOrient.rows(); ++i) {
-    for(int j = 0; j < freeOrient.cols(); ++j) {
-      orient_init[counter++] = freeOrient(i, j);
+    orient_init.resize(1, freeOrient.size());
+    for (size_t idx{0}; idx < freeOrient.size(); idx++){
+      orient_init(0, idx) = freeOrient.reshaped<Eigen::RowMajor>()[idx];
     }
-  }
   atomic_dimer.initialize(p, init_observations, init_middle_point, orient_init,
                           atoms_config);
 
