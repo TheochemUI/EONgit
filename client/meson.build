@@ -21,7 +21,7 @@ if host_system == 'darwin'
 endif
 
 # Dependencies
-eigen_dep = dependency('Eigen3', method : 'cmake', modules : ['Eigen3::Eigen'], required : true)
+eigen_dep = dependency('Eigen3')
 eon_deps = [ eigen_dep ]
 
 # Optional, only for AMS
@@ -44,7 +44,7 @@ boost_ams_dep = dependency('boost',
   required : false,
 )
 
-fmt_dep = dependency('fmt', method : 'cmake',  modules : ['fmt::fmt'],  required : false)
+fmt_dep = dependency('fmt', method : 'cmake',  modules : ['fmt::fmt'],  required : true)
 
 ams_dep = [ boost_ams_dep, absl_dep, fmt_dep  ]
 
