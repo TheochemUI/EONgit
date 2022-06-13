@@ -47,21 +47,28 @@ TEST_F(GPRHelpersTest, TestNEBInitPath) {
       << "Energies of the last image don't match";
 }
 
-// TEST_F(GPRHelpersTest, TestNEBInitObs) {
-//   // Setup the observations
-//   auto imgArray = helper_functions::prepInitialPath(this->parameters.get());
-//   auto obspath = helper_functions::prepInitialObs(imgArray);
-//   // Assertions
-//   const int nimages = this->parameters->nebImages;
-//   const int totImages = nimages + 2; // Final and end
-//   EXPECT_EQ(obspath.E.getSize(), totImages)
-//       << "Number of elements of energies do not match";
-//   EXPECT_EQ(obspath.R.getNumPoints(), totImages)
-//       << "Number of elements of R matrices do not match";
-//   EXPECT_EQ(obspath.G.getNumPoints(), totImages)
-//       << "Number of elements of G matrices do not match";
-//   // obspath.printSizes();
-// }
+TEST_F(GPRHelpersTest, TestNEBInitObs) {
+  // Setup the observations
+  auto imgArray = helper_functions::prepInitialPath(this->parameters.get());
+  auto obspath = helper_functions::prepInitialObs(imgArray);
+  // Assertions
+  const int nimages = this->parameters->nebImages;
+  const int totImages = nimages + 2;  // Final and end
+  EXPECT_EQ(obspath.E.getNumRows(), totImages)
+      << "Number of elements of energies do not match";
+  EXPECT_EQ(obspath.E.getNumCols(), 1) << "Energy dimensions do not match";
+  EXPECT_EQ(obspath.R.getNumRows(), totImages)
+      << "Number of rows of the R matrix is not the same as the images on the "
+         "path";
+  EXPECT_EQ(obspath.G.getNumRows(), totImages)
+      << "Number of rows of the G matrix is not the same as the images on the "
+         "path";
+  // The number of 3D points is given by getNumPoints and this is for each
+  // system image point
+  EXPECT_EQ(obspath.R.getNumPoints(),
+            totImages * imgArray.front().numberOfAtoms())
+      << "Number of elements of R matrices do not match";
+}
 
 // TEST_F(GPRHelpersTest, TestPathLength) {
 //   // Setup the observations
