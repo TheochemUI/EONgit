@@ -3,6 +3,7 @@
 
 #include "Matter.h"
 #include "Parameters.h"
+#include "HelperFunctions.h"
 #include "Log.h"
 
 #include "subprojects/gprdimer/structures/Structures.h"
@@ -35,6 +36,17 @@ namespace helper_functions {
      * @param *Matter An EON Matter object
      */
     gpr::Observation eon_matter_to_init_obs(Matter *matter);
+
+    /**
+     * \brief Setup initial path
+     *
+     * This is essentially what the NEB initialization does, however, we need
+     * this here to prepare the initial observations for the GPR surface
+     * */
+    std::vector<Matter> prepInitialPath(
+                   Parameters *params,
+                   std::string fname_reactant="reactant.con"s,
+                   std::string fname_product="product.con"s);
 
     } // namespace helper_functions
 #endif /* GPRHELPERS_H */

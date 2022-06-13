@@ -246,3 +246,35 @@ gpr::Observation helper_functions::eon_matter_to_init_obs(Matter *matter) {
   }
   return obs;
 }
+
+std::vector<Matter> helper_functions::prepInitialPath(
+           Parameters *params,
+           std::string fname_reactant,
+           std::string fname_product){
+  // Prep final, initial images
+  auto reactantFilename = helper_functions::getRelevantFile(fname_reactant);
+  auto productFilename = helper_functions::getRelevantFile(fname_product);
+  Matter initmatter(params), finalmatter(params);
+  initmatter.con2matter(reactantFilename);
+  finalmatter.con2matter(productFilename);
+  initmatter.getPotentialEnergy();
+  finalmatter.getPotentialEnergy();
+  // Setup path
+  const int natoms = initmatter.numberOfAtoms();
+  const int nimages = params->nebImages;
+  const int totImages = nimages + 2; // Final and end
+  std::vector<Matter> imageArray;
+  for (size_t idx{0}; idx < nimages+1; idx++){// Final added later
+    imageArray.emplace_back(initmatter);
+  }
+    auto posInit = initmatter.getPositions();
+    auto posFinal = finalmatter.getPositions();
+    const AtomMatrix imageSep = initmatter.pbc((posFinal-posInit)/(totImages-1));
+    for (double idx{0}; auto &image: imageArray){
+      image.setPositions(posInit + imageSep * idx);
+      ++idx;
+    }
+    // This must be after the loop above
+    imageArray.push_back(finalmatter);
+    return imageArray;
+}
