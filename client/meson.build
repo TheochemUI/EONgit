@@ -72,7 +72,7 @@ potentials = [
 eon_pot = declare_dependency(link_with : potentials)
   # include_directories : my_inc)
 
-eonclient_sources = [
+eonlib_sources = [
            'Optimizer.cpp',
            'PrefactorJob.cpp',
            'LBFGS.cpp',
@@ -130,8 +130,7 @@ if get_option('with_gprd')
   subdir('potentials/GPRPotential')
   potentials += [ gprpot ]
   eon_extra_args += ['-DWITH_GPRD']
-  eonlib_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp',
-                      'GPR_AIE_NEBJob.cpp']
+  eonlib_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp']
   eon_deps += [ gprd_dep, fmt_dep ]
 endif
 
