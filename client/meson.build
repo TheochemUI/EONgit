@@ -115,9 +115,7 @@ eonclient_sources = [
            'Quickmin.cpp',
            'ParallelReplicaJob.cpp',
            'Potential.cpp',
-           'ClientEON.cpp',
            'BasinHoppingJob.cpp',
-           'CommandLine.cpp',
            'FIRE.cpp',
            'EpiCenters.cpp',
            'SaddleSearchJob.cpp',
@@ -132,8 +130,9 @@ if get_option('with_gprd')
   subdir('potentials/GPRPotential')
   potentials += [ gprpot ]
   eon_extra_args += ['-DWITH_GPRD']
-  eonclient_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp' ]
-  eon_deps += [ gprd_dep ]
+  eonlib_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp',
+                      'GPR_AIE_NEBJob.cpp']
+  eon_deps += [ gprd_dep, fmt_dep ]
 endif
 
 if get_option('with_vasp')
@@ -195,10 +194,88 @@ if get_option('with_fortran')
 endif
 
 # ---------------------- Executable
+# versioning = custom_target('create version.h',
+#                         output : ['version.h'],
+#                         command : [ 'version.sh', '>', '@OUTPUT@' ],
+#                         install : false,
+#                         build_by_default : true,
+#                        )
+
+eclib = library('eonlib',
+                eonlib_sources,
+                dependencies: eon_deps,
+                link_with: potentials,
+                cpp_args: eon_extra_args,
+                install: true
+               )
+
+eonlib = [potentials, eclib]
 
 ec = executable('eonclient',
-                eonclient_sources,
-                dependencies : eon_deps,
-                link_with : potentials,
+                ['CommandLine.cpp', 'ClientEON.cpp'],
+                link_with : eonlib,
+                dependencies: eon_deps,
                 cpp_args : eon_extra_args,
                 install : true)
+
+# ----------------------- Tests
+
+gtest = dependency('gtest', main : true, required : false)
+gtest_dep = gtest
+eontest_dep = [eon_deps, gtest]
+
+potdat = custom_target('copy data for morse test',
+                        input : ['gtests/data/gpr_neb/morse_one_pt/pos.con'],
+                        output : ['pos.con'],
+                        command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                        install : false,
+                        build_by_default : true,
+                       )
+
+t1 = executable('t1_morse',
+                'gtests/MorsePotTest.cpp',
+                link_with : eonlib,
+                dependencies: eontest_dep,
+                cpp_args : eon_extra_args,
+               )
+  test('MorsePot test', t1)
+
+if get_option('with_gprd')
+
+  # GPR Data
+  custom_target('copy config.ini for gpr-neb',
+                input : ['gtests/data/gpr_neb/morse_one_pt/config.ini'],
+                output : ['config.ini'],
+                command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                install : false,
+                build_by_default : true,
+               )
+
+  custom_target('copy product.con for gpr-neb',
+                input : ['gtests/data/gpr_neb/morse_one_pt/product.con'],
+                output : ['product.con'],
+                command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                install : false,
+                build_by_default : true,
+               )
+
+  custom_target('copy reactant.con for gpr-neb',
+                input : ['gtests/data/gpr_neb/morse_one_pt/reactant.con'],
+                output : ['reactant.con'],
+                command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                install : false,
+                build_by_default : true,
+               )
+
+  gptest_dets = [eontest_dep]
+
+  test('Observation test',
+       executable('obstest',
+                  'gtests/ObsTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+endif
