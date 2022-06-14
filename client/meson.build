@@ -4,7 +4,7 @@ project('eonclient', 'cpp',
 
 host_system = host_machine.system()
 # Note that fast-math gives incorrect results, and the third set is for debugging
-eon_extra_args = ['-funroll-loops'] # ['-ffast-math', '-funroll-loops'] #['-ggdb', '-Og', '-fno-inline-functions']
+eon_extra_args = ['-ggdb', '-Og', '-fno-inline-functions'] # ['-ffast-math', '-funroll-loops'] #['-ggdb', '-Og', '-fno-inline-functions']
 
 add_languages('c', required: true)
 
@@ -296,6 +296,14 @@ if get_option('with_gprd')
   test('GPR helpers test',
        executable('gprhelpers',
                   'gtests/GPRHelpersTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+  test('GPR Regression test',
+       executable('gprtrain',
+                  'gtests/GPRTrainTest.cpp',
                   link_with : eonlib,
                   dependencies: gptest_dets,
                   cpp_args : eon_extra_args,

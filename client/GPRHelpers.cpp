@@ -3,6 +3,7 @@
 #include <map>
 #include <unordered_map>
 #include <set>
+#include "external/icecream.hpp"
 
 gpr::InputParameters
 helper_functions::eon_parameters_to_gpr(Parameters *parameters) {
@@ -134,15 +135,8 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
   int fake_atype; //!> False "atomtype" for GPR Dimer
 
   atoms_config.clear();
-  gpr::EigenMatrix positions = matter->getPositions();
-  atoms_config.positions.resize(1, positions.size());
   atoms_config.is_frozen.resize(matter->numberOfAtoms());
   atoms_config.id.resize(matter->numberOfAtoms());
-
-  for (size_t idx{0}; idx < positions.size(); idx++){
-    atoms_config.positions(0, idx) = positions.reshaped<Eigen::RowMajor>()[idx];
-  }
-
   atoms_config.atomicNrs.resize(matter->numberOfAtoms());
   for (auto i = 0; i < matter->numberOfAtoms(); i++) {
     atomnrs.push_back(matter->getAtomicNr(i));
@@ -150,6 +144,9 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
     atoms_config.is_frozen[i] = matter->getFixed(i);
     atoms_config.id[i] = i + 1;
   }
+
+  gpr::Field<double> falseConDat =  helper_functions::generateAtomsConfigField(*matter);
+  atoms_config.assignFromField(falseConDat);
 
   unique_atomtypes = std::set<int>(atomnrs.begin(), atomnrs.end());
   n_at = unique_atomtypes.size();
@@ -168,7 +165,7 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
     atoms_config.atoms_mov.resize(number_of_mov_atoms);
     atoms_config.atoms_froz_inactive.resize(number_of_fro_atoms);
 
-    //!> Does a horrible to ensure that this is filled correctly. Essentially we
+    //!> Does a horrible hack to ensure that this is filled correctly. Essentially we
     //! use the Map of <EON atomtype, GPR faketype> to generate the fully filled
     //! vectors for moving and frozen_inactive
     //! FIXME: We should really just use the EON atomtype everywhere
@@ -237,6 +234,7 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
   // Pairtype indices for pairs of atomtypes (n_at x n_at)
   // Active pairtypes are indexed as 0,1,...,n_pt-1. Inactive pairtypes are
   // given index EMPTY.
+  atoms_config.n_pt = n_at;
   atoms_config.pairtype.resize(n_at, n_at);
   atoms_config.pairtype.set(EMPTY);
 
@@ -245,28 +243,38 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
   problem_setup.setPairtypeForMovingAtoms(
       atoms_config.atoms_mov.type, atoms_config.n_pt, atoms_config.pairtype);
 
-  // // Activate frozen atoms within activation distance
-  // This is now in AtomicGPDimer.cpp
-  // problem_setup.activateFrozenAtoms(R_init, parameters.actdist_fro.value,
-  //                                 atoms_config);
-
   return atoms_config;
 }
-
 gpr::Observation helper_functions::eon_matter_to_init_obs(Matter& matter) {
   gpr::Observation obs;
   obs.clear();
-  gpr::EigenMatrix positions = matter.getPositions();
-  gpr::EigenMatrix forces = matter.getForces();
-  obs.R.resize(1, positions.size());
+  gpr::EigenMatrix posFree = matter.getPositionsFree();
+  gpr::EigenMatrix forces = matter.getForcesFree();
+  obs.R.resize(1, posFree.size());
   obs.G.resize(1, forces.size());
   obs.E.resize(1);
   obs.E.set(matter.getPotentialEnergy());
-  for (size_t idx{0}; idx < positions.size(); idx++){
-    obs.R(0, idx) = positions.reshaped<Eigen::RowMajor>()[idx];
+  for (size_t idx{0}; idx < posFree.size(); idx++){
+    obs.R(0, idx) = posFree.reshaped<Eigen::RowMajor>()[idx];
     obs.G(0, idx) = -1*forces.reshaped<Eigen::RowMajor>()[idx];
   }
   return obs;
+}
+
+gpr::Field<double> helper_functions::generateAtomsConfigField(const Matter& mat){
+  const size_t natoms = mat.numberOfAtoms();
+  gpr::Field<double> conf_prim; // always takes a 5 membered field
+  conf_prim.resize(natoms, 5);
+  gpr::EigenMatrix positions = mat.getPositions();
+  positions.conservativeResize(positions.rows(), 5);
+  for(size_t idx{0}; idx < natoms; idx++){
+    positions(idx, 3) = mat.getFixed(idx);
+    positions(idx, 4) = idx;
+  }
+  for (size_t idx{0}; idx < positions.size(); idx++){
+    conf_prim.getInternalVector()[idx] = positions.reshaped<Eigen::RowMajor>()[idx];
+  }
+  return conf_prim;
 }
 
 std::vector<Matter> helper_functions::prepInitialPath(
@@ -303,8 +311,41 @@ std::vector<Matter> helper_functions::prepInitialPath(
 
 gpr::Observation helper_functions::prepInitialObs(std::vector<Matter> &vecmat) {
   gpr::Observation resObs;
-  for (auto& mat : vecmat){
+  for (auto&& mat : vecmat){
     resObs.append(helper_functions::eon_matter_to_init_obs(mat));
   }
   return resObs;
+}
+
+std::pair<gpr::AtomsConfiguration, gpr::Coord> helper_functions::eon_matter_to_frozen_conf_info(Matter* matter, double activeRadius){
+  gpr::Coord R_init;
+  aux::ProblemSetUp problem_setup;
+  gpr::AtomsConfiguration retconf = helper_functions::eon_matter_to_atmconf(matter);
+  gpr::EigenMatrix posFree = matter->getPositionsFree();
+  R_init.resize(1, posFree.size());
+  for (size_t idx{0}; idx < posFree.size(); ++idx) {
+    R_init(0, idx) = posFree.reshaped<Eigen::RowMajor>()[idx];
+  }
+  problem_setup.activateFrozenAtoms(R_init, activeRadius,
+                                    retconf);
+
+  return std::make_pair(retconf, R_init);
+}
+
+gpr::GaussianProcessRegression& helper_functions::initializeGPR(gpr::GaussianProcessRegression& gprfunc,
+                                                                gpr::AtomsConfiguration& atoms_config,
+                                                                gpr::Observation& obsPath,
+                                                                std::pair<Parameters, Matter>& eon_matter_params){
+    auto initmatter = std::get<Matter>(eon_matter_params);
+    auto eonp = std::get<Parameters>(eon_matter_params);
+    gpr::GPRSetup gpr_parameters;
+    gpr_parameters.jitter_sigma2 = eonp.gprPotJitterSigma2;
+    gpr_parameters.sigma2 = eonp.gprPotSigma2;
+    gprfunc.setParameters(gpr_parameters);
+    auto  potparams = helper_functions::eon_parameters_to_gprpot(&eonp);
+    for (int i = 0; i < 9; i++) {
+        potparams.cell_dimensions.value[i] = initmatter.getCell()(i);
+    }
+    gprfunc.initialize(potparams, atoms_config);
+    return gprfunc;
 }

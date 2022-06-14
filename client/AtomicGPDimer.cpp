@@ -24,7 +24,7 @@ AtomicGPDimer::~AtomicGPDimer() { delete matterCenter; }
 
 void AtomicGPDimer::compute(Matter *matter,
                             AtomMatrix initialDirectionAtomMatrix) {
-  atoms_config = helper_functions::eon_matter_to_atmconf(*matter);
+  atoms_config = helper_functions::eon_matter_to_atmconf(matter);
   *matterCenter = *matter;
   // R_init.resize(1, matterCenter->getPositionsFree().size());
   // R_init.assignFromEigenMatrix(matterCenter->getPositionsFreeV());
@@ -39,8 +39,7 @@ void AtomicGPDimer::compute(Matter *matter,
   problem_setup.activateFrozenAtoms(R_init, parameters->gprActiveRadius,
                                     atoms_config);
   orient_init.clear();
-  orient_init.resize(matterCenter->getPositionsFree().rows(),
-                     matterCenter->getPositionsFree().cols());
+  orient_init.resize(matterCenter->getPositionsFree().size());
     AtomMatrix freeOrient(matterCenter->numberOfFreeAtoms(),3);
     int i,j = 0;
     for(i=0; i<matterCenter->numberOfAtoms(); i++)

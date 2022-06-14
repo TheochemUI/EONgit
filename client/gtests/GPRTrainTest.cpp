@@ -34,17 +34,23 @@ GPRTrainTest::GPRTrainTest() {
   // Constants
   this->init_eref = this->initmatter.get()->getPotentialEnergy();
   this->init_frcsref = this->initmatter.get()->getForcesFree();
+  this->init_posfree = this->initmatter.get()->getPositionsFree();
   this->config_data = helper_functions::eon_matter_to_frozen_conf_info(
-      *this->initmatter, 5);
+      this->initmatter.get(), 1);
   auto atoms_config = std::get<gpr::AtomsConfiguration>(config_data);
   auto R_init = std::get<gpr::Coord>(config_data);
   // Setup the observations
   this->imgArray = helper_functions::prepInitialPath(this->parameters.get());
   this->obspath = helper_functions::prepInitialObs(this->imgArray);
+  obspath.R.print();
+  obspath.R.printSizes();
+  obspath.G.print();
+  obspath.E.print();
   // Setup GPR
   auto eon_pack = std::make_pair(*this->parameters, *this->initmatter);
   *this->gprfunc = helper_functions::initializeGPR(*this->gprfunc, atoms_config,
                                                    obspath, eon_pack);
+  IC(atoms_config.n_pt);
   this->gprfunc->setHyperparameters(obspath, atoms_config);
   this->gprfunc->optimize(obspath);
   // Comparer
@@ -61,10 +67,10 @@ GPRTrainTest::~GPRTrainTest(){
 TEST_F(GPRTrainTest, TestSinglePoint) {
   gpr::Observation o;
   o.clear();
-  o.R.resize(1, init_frcsref.rows() * init_frcsref.cols());
-  o.G.resize(1, init_frcsref.rows() * init_frcsref.cols());
+  o.R.resize(1, init_posfree.size());
+  o.G.resize(1, init_frcsref.size());
   gpr::EigenMatrix freePos = this->initmatter.get()->getPositionsFree();
-  for (size_t idx{0}; idx < init_frcsref.rows() * init_frcsref.cols(); ++idx) {
+  for (size_t idx{0}; idx < init_frcsref.size(); ++idx) {
     o.R(0, idx) = freePos.reshaped<Eigen::RowMajor>()[idx];
   }
   o.E.resize(1);
@@ -77,18 +83,18 @@ TEST_F(GPRTrainTest, TestSinglePoint) {
       << "Gradients don't match";
 }
 
-TEST_F(GPRTrainTest, TestMultiPoint) {
-  // Multiple observations
-  gpr::Observation oo = obspath;
-  this->gprfunc->calculatePotential(oo);
-  // Reshape them to the same size
-  ASSERT_PRED2(comparer, oo.E.extractEigenMatrix().reshaped<Eigen::RowMajor>(),
-               obspath.E.extractEigenMatrix().reshaped<Eigen::RowMajor>())
-      << "Energies don't match";
-  ASSERT_PRED2(comparer, oo.G.extractEigenMatrix().reshaped<Eigen::RowMajor>(),
-               obspath.G.extractEigenMatrix().reshaped<Eigen::RowMajor>())
-      << "Gradients don't match";
-};
+// TEST_F(GPRTrainTest, TestMultiPoint) {
+//   // Multiple observations
+//   gpr::Observation oo = obspath;
+//   this->gprfunc->calculatePotential(oo);
+//   // Reshape them to the same size
+//   ASSERT_PRED2(comparer, oo.E.extractEigenMatrix().reshaped<Eigen::RowMajor>(),
+//                obspath.E.extractEigenMatrix().reshaped<Eigen::RowMajor>())
+//       << "Energies don't match";
+//   ASSERT_PRED2(comparer, oo.G.extractEigenMatrix().reshaped<Eigen::RowMajor>(),
+//                obspath.G.extractEigenMatrix().reshaped<Eigen::RowMajor>())
+//       << "Gradients don't match";
+// };
 
 // TEST_F(GPRTrainTest, FunctionCalls) {
 //   // Constants

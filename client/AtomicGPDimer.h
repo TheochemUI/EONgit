@@ -16,6 +16,7 @@
 #include "subprojects/gprdimer/gpr/covariance_functions/SexpatCF.h"
 #include "subprojects/gprdimer/gpr/ml/GaussianProcessRegression.h"
 #include "subprojects/gprdimer/managers/io/FileManager.h"
+#include "subprojects/gprdimer/structures/Structures.h"
 
 // dimer method to find the lowest curvature mode
 class AtomicGPDimer : public LowestEigenmode {

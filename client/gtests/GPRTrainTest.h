@@ -27,7 +27,7 @@ namespace tests {
     std::vector<Matter> imgArray;
     gpr::Observation obspath;
     std::pair<gpr::AtomsConfiguration, gpr::Coord> config_data;
-    AtomMatrix init_frcsref;
+    AtomMatrix init_frcsref, init_posfree;
     double init_eref;
     std::function<bool(const gpr::EigenMatrix &lhs, const gpr::EigenMatrix &rhs)> comparer;
     };
