@@ -92,10 +92,10 @@ GPRNEB::GPRNEB(std::vector<GPRMatter> initPath, Parameters params):
     nebImages{initPath.begin()+1, initPath.end()-1},
     init_path_length{initPath.front().truePotMatter.distanceTo(
         initPath.back().truePotMatter)},
-    nimages{params.nebImages},
+    nimages{static_cast<size_t>(params.nebImages)},
     threshold{params.nebConvergedForce},
-    natoms{initPath.front().truePotMatter.numberOfAtoms()},
-    nfree{initPath.front().truePotMatter.numberOfFreeAtoms()},
+    natoms{static_cast<size_t>(initPath.front().truePotMatter.numberOfAtoms())},
+    nfree{static_cast<size_t>(initPath.front().truePotMatter.numberOfFreeAtoms())},
     totImages{nimages+2}
 {
     log("\nNEB: initialize\n");
