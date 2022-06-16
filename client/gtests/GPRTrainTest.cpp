@@ -58,8 +58,11 @@ TEST_F(GPRTrainTest, TestMatter) {
   // Setup GPR
   auto eondat = std::make_pair(*this->parameters,*this->initmatter);
   *this->gprfunc = helper_functions::initializeGPR(*this->gprfunc, atoms_config, obspath, eondat);
+  // Set should be in the initialization, and split into optimize
   this->gprfunc->setHyperparameters(obspath, atoms_config);
   this->gprfunc->optimize(obspath);
+  // Update is called later; actually this state can be tracked internally in the object
+  this->gprfunc->updateHyperparameters;
   // Multiple observations
   // auto oo = obspath;
   // this->gprfunc->calculatePotential(oo);

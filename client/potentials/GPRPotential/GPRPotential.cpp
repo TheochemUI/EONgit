@@ -79,6 +79,9 @@ std::pair<double, AtomMatrix> GPRPotential::force(AtomMatrix positions, Eigen::V
 
     // See GPRTrainTest.cpp for the functions to be called before this
     this->gpr_model->calculatePotential(obs);
+    // additionally return a status?
+    // TODO: retraining should be the GPR's responsibility
+    // TODO: There should be a status check for introspection
 
     return std::make_pair(obs.E.extractEigenMatrix()(0),
                           obs.G.extractEigenMatrix() * -1);
