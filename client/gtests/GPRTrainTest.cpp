@@ -62,7 +62,7 @@ TEST_F(GPRTrainTest, TestMatter) {
   this->gprfunc->setHyperparameters(obspath, atoms_config);
   this->gprfunc->optimize(obspath);
   // Update is called later; actually this state can be tracked internally in the object
-  this->gprfunc->updateHyperparameters;
+  // this->gprfunc->updateHyperparameters;
   // Multiple observations
   // auto oo = obspath;
   // this->gprfunc->calculatePotential(oo);
