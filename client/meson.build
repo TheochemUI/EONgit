@@ -3,7 +3,8 @@ project('eonclient', 'cpp',
   default_options : ['warning_level=3', 'cpp_std=c++17'])
 
 host_system = host_machine.system()
-eon_extra_args = []
+# Note that fast-math gives incorrect results, and the third set is for debugging
+eon_extra_args = ['-funroll-loops'] # ['-ffast-math', '-funroll-loops'] #['-ggdb', '-Og', '-fno-inline-functions']
 
 add_languages('c', required: true)
 
@@ -16,11 +17,11 @@ if host_system == 'darwin'
   # Workaround for
   # ../MinModeSaddleSearch.cpp:173:25: error: aligned allocation function of
   # type 'void *(unsigned long, enum std::align_val_t)' is only available on macOS 10.13 or newer
-  add_global_arguments(['-faligned-allocation'], language: 'cpp')
+  add_global_arguments(['-faligned-allocation', '-ggdb', '-Og', '-fno-inline-functions'], language: 'cpp')
 endif
 
 # Dependencies
-eigen_dep = dependency('Eigen3', method : 'cmake', modules : ['Eigen3::Eigen'], required : true)
+eigen_dep = dependency('Eigen3')
 eon_deps = [ eigen_dep ]
 
 # Optional, only for AMS
@@ -43,7 +44,7 @@ boost_ams_dep = dependency('boost',
   required : false,
 )
 
-fmt_dep = dependency('fmt', method : 'cmake',  modules : ['fmt::fmt'],  required : false)
+fmt_dep = dependency('fmt', method : 'cmake',  modules : ['fmt::fmt'],  required : true)
 
 ams_dep = [ boost_ams_dep, absl_dep, fmt_dep  ]
 
@@ -71,7 +72,7 @@ potentials = [
 eon_pot = declare_dependency(link_with : potentials)
   # include_directories : my_inc)
 
-eonclient_sources = [
+eonlib_sources = [
            'Optimizer.cpp',
            'PrefactorJob.cpp',
            'LBFGS.cpp',
@@ -90,6 +91,8 @@ eonclient_sources = [
            'PointJob.cpp',
            'Prefactor.cpp',
            'ConjugateGradients.cpp',
+           'GPRMatter.cpp',
+           'GPRNEB.cpp',
            'Matter.cpp',
            'FiniteDifferenceJob.cpp',
            'Lanczos.cpp',
@@ -114,9 +117,7 @@ eonclient_sources = [
            'Quickmin.cpp',
            'ParallelReplicaJob.cpp',
            'Potential.cpp',
-           'ClientEON.cpp',
            'BasinHoppingJob.cpp',
-           'CommandLine.cpp',
            'FIRE.cpp',
            'EpiCenters.cpp',
            'SaddleSearchJob.cpp',
@@ -131,8 +132,9 @@ if get_option('with_gprd')
   subdir('potentials/GPRPotential')
   potentials += [ gprpot ]
   eon_extra_args += ['-DWITH_GPRD']
-  eonclient_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp' ]
-  eon_deps += [ gprd_dep ]
+  eonlib_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp',
+                      'GPR_AIE_NEBJob.cpp']
+  eon_deps += [ gprd_dep, fmt_dep ]
 endif
 
 if get_option('with_vasp')
@@ -194,10 +196,162 @@ if get_option('with_fortran')
 endif
 
 # ---------------------- Executable
+# versioning = custom_target('create version.h',
+#                         output : ['version.h'],
+#                         command : [ 'version.sh', '>', '@OUTPUT@' ],
+#                         install : false,
+#                         build_by_default : true,
+#                        )
+
+eclib = library('eonlib',
+                eonlib_sources,
+                dependencies: eon_deps,
+                link_with: potentials,
+                cpp_args: eon_extra_args,
+                install: true
+               )
+
+eonlib = [potentials, eclib]
 
 ec = executable('eonclient',
-                eonclient_sources,
-                dependencies : eon_deps,
-                link_with : potentials,
+                ['CommandLine.cpp', 'ClientEON.cpp'],
+                link_with : eonlib,
+                dependencies: eon_deps,
                 cpp_args : eon_extra_args,
                 install : true)
+
+# ----------------------- Tests
+
+gtest = dependency('gtest', main : true, required : false)
+gtest_dep = gtest
+eontest_dep = [eon_deps, gtest]
+
+potdat = custom_target('copy data for morse test',
+                        input : ['gtests/data/gpr_neb/morse_one_pt/pos.con'],
+                        output : ['pos.con'],
+                        command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                        install : false,
+                        build_by_default : true,
+                       )
+
+t1 = executable('t1_morse',
+                'gtests/MorsePotTest.cpp',
+                link_with : eonlib,
+                dependencies: eontest_dep,
+                cpp_args : eon_extra_args,
+               )
+  test('MorsePot test', t1)
+
+if get_option('with_gprd')
+
+  # GPR Data
+  custom_target('copy config.ini for gpr-neb',
+                input : ['gtests/data/gpr_neb/morse_one_pt/config.ini'],
+                output : ['config.ini'],
+                command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                install : false,
+                build_by_default : true,
+               )
+
+  custom_target('copy product.con for gpr-neb',
+                input : ['gtests/data/gpr_neb/morse_one_pt/product.con'],
+                output : ['product.con'],
+                command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                install : false,
+                build_by_default : true,
+               )
+
+  custom_target('copy reactant.con for gpr-neb',
+                input : ['gtests/data/gpr_neb/morse_one_pt/reactant.con'],
+                output : ['reactant.con'],
+                command : [ 'cp', '@INPUT@', '@OUTPUT@' ],
+                install : false,
+                build_by_default : true,
+               )
+
+  gptest_dets = [eontest_dep]
+
+  test('Observation test',
+       executable('obstest',
+                  'gtests/ObsTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+  test('GPR helpers test',
+       executable('gprhelpers',
+                  'gtests/GPRHelpersTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+  test('Nudged Elastic Band Setup Test',
+       executable('neb',
+                  'gtests/NEBSetupTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+  test('GPR Regression test',
+       executable('gprtrain',
+                  'gtests/GPRTrainTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+
+  test('GPR potential test',
+       executable('gprpot',
+                  'gtests/GPRPotTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+  test('Run the NEB with GPR-Pot objects',
+       executable('nebjobgpr',
+                   'gtests/NEBJobGPRTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+
+  # test('Run the GPR_AIE_NEB job',
+  #      executable('gpraienebjob',
+  #                 'gtests/GPR_AIE_NEBJobTest.cpp',
+  #                 link_with : eonlib,
+  #                 dependencies: gptest_dets,
+  #                 cpp_args : eon_extra_args,
+  #                )
+  #     )
+
+  test('Run GPR Matter tests',
+       executable('gprMatter1',
+                  'gtests/matterGPRTest.cpp',
+                  link_with : eonlib,
+                  dependencies: gptest_dets,
+                  cpp_args : eon_extra_args,
+                 )
+      )
+
+  # test('SCG Matter test',
+  #      executable('scgmatter',
+  #                 'gtests/SCGMatterTest.cpp',
+  #                 link_with : eonlib,
+  #                 dependencies: gptest_dets,
+  #                 cpp_args : eon_extra_args,
+  #                )
+  #     )
+
+endif

@@ -72,7 +72,6 @@ class NEBObjectiveFunction : public ObjectiveFunction
         }
 
     private:
-
         NudgedElasticBand *neb;
         Parameters *parameters;
 };
@@ -101,6 +100,7 @@ NudgedElasticBand::NudgedElasticBand(Matter *initialPassed, Matter *finalPassed,
         projectedForce[i] = new AtomMatrix;
         projectedForce[i]->resize(atoms,3);
     }
+    *image[0] = *initialPassed;
     *image[images+1] = *finalPassed;  // final image
 
     AtomMatrix posInitial = image[0]->getPositions();
@@ -205,7 +205,9 @@ int NudgedElasticBand::compute(void)
 // generate the force value that is compared to the convergence criterion
 double NudgedElasticBand::convergenceForce(void)
 {
-    if(movedAfterForceCall) updateForces();
+    if(movedAfterForceCall){
+        updateForces();
+    }
     double fmax = 0;
 
     for(long i=1; i<=images; i++) {

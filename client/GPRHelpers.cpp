@@ -1,11 +1,17 @@
 #include "GPRHelpers.h"
+#include "subprojects/gprdimer/backend/Macros.h"
+#include "subprojects/gprdimer/gpr/auxiliary/Distance.h"
 
 #include <map>
+#include <stdexcept>
 #include <unordered_map>
 #include <set>
+#include <cassert>
+#include <algorithm>
+#include <numeric>
 
 gpr::InputParameters
-helper_functions::eon_parameters_to_gpr(Parameters *parameters) {
+helper_functions::eon_parameters_to_gprd(Parameters *parameters) {
   gpr::InputParameters p;
   // Problem parameters
   p.actdist_fro.value = parameters->gprActiveRadius;
@@ -59,6 +65,28 @@ helper_functions::eon_parameters_to_gpr(Parameters *parameters) {
   return p;
 }
 
+gpr::InputParameters
+helper_functions::eon_parameters_to_gprpot(Parameters *parameters) {
+  gpr::InputParameters p;
+  // Problem parameters
+  p.actdist_fro.value = parameters->gprPotActiveRadius;
+  // GPR Parameters
+  p.gp_sigma2.value = parameters->gprPotSigma2;
+  p.jitter_sigma2.value = parameters->gprPotJitterSigma2;
+  p.sigma2.value = parameters->gprPotNoiseSigma2;
+  p.prior_mu.value = parameters->gprPotPriorMu;
+  p.prior_s2.value = parameters->gprPotPriorSigma2;
+  p.prior_nu.value = parameters->gprPotPriorNu;
+  p.check_derivative.value = parameters->gprPotOptCheckDerivatives;
+  p.max_iter.value = parameters->gprPotOptMaxIterations;
+  p.tolerance_func.value = parameters->gprPotOptTolFunc;
+  p.tolerance_sol.value = parameters->gprPotOptTolSol;
+  p.lambda_limit.value = parameters->gprPotOptLambdaLimit;
+  p.lambda.value = parameters->gprPotOptLambdaInit;
+  p.magnSigma2.value = parameters->gprPotmagnSigma2;
+  p.constSigma2.value = parameters->gprPotconstSigma2;
+  return p;
+}
 // FIXME: Take in the active / inactive pairs / atomtypes
 gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) {
   //   AtomsConfiguration a;
@@ -112,11 +140,8 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
   int fake_atype; //!> False "atomtype" for GPR Dimer
 
   atoms_config.clear();
-  atoms_config.positions.resize(matter->getPositions().rows(),
-                                matter->getPositions().cols());
   atoms_config.is_frozen.resize(matter->numberOfAtoms());
   atoms_config.id.resize(matter->numberOfAtoms());
-  atoms_config.positions.assignFromEigenMatrix(matter->getPositions());
   atoms_config.atomicNrs.resize(matter->numberOfAtoms());
   for (auto i = 0; i < matter->numberOfAtoms(); i++) {
     atomnrs.push_back(matter->getAtomicNr(i));
@@ -124,6 +149,9 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
     atoms_config.is_frozen[i] = matter->getFixed(i);
     atoms_config.id[i] = i + 1;
   }
+
+  gpr::Field<double> falseConDat =  helper_functions::generateAtomsConfigField(*matter);
+  atoms_config.assignFromField(falseConDat);
 
   unique_atomtypes = std::set<int>(atomnrs.begin(), atomnrs.end());
   n_at = unique_atomtypes.size();
@@ -142,7 +170,7 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
     atoms_config.atoms_mov.resize(number_of_mov_atoms);
     atoms_config.atoms_froz_inactive.resize(number_of_fro_atoms);
 
-    //!> Does a horrible to ensure that this is filled correctly. Essentially we
+    //!> Does a horrible hack to ensure that this is filled correctly. Essentially we
     //! use the Map of <EON atomtype, GPR faketype> to generate the fully filled
     //! vectors for moving and frozen_inactive
     //! FIXME: We should really just use the EON atomtype everywhere
@@ -211,6 +239,7 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
   // Pairtype indices for pairs of atomtypes (n_at x n_at)
   // Active pairtypes are indexed as 0,1,...,n_pt-1. Inactive pairtypes are
   // given index EMPTY.
+  atoms_config.n_pt = n_at;
   atoms_config.pairtype.resize(n_at, n_at);
   atoms_config.pairtype.set(EMPTY);
 
@@ -220,20 +249,282 @@ gpr::AtomsConfiguration helper_functions::eon_matter_to_atmconf(Matter *matter) 
       atoms_config.atoms_mov.type, atoms_config.n_pt, atoms_config.pairtype);
 
   // // Activate frozen atoms within activation distance
+  // This is now in AtomicGPDimer.cpp
   // problem_setup.activateFrozenAtoms(R_init, parameters.actdist_fro.value,
   //                                 atoms_config);
 
   return atoms_config;
 }
 
-gpr::Observation helper_functions::eon_matter_to_init_obs(Matter *matter) {
-  gpr::Observation o;
-  o.clear();
-  o.R.resize(matter->getPositions().rows(),matter->getPositions().cols());
-  o.G.resize(matter->getForces().rows(),matter->getForces().cols());
-  o.E.resize(1);
-  o.E.set(matter->getPotentialEnergy());
-  o.R.assignFromEigenMatrix(matter->getPositions());
-  o.G.assignFromEigenMatrix(matter->getForces());
-  return o;
+gpr::Observation helper_functions::eon_matter_to_init_obs(Matter& matter) {
+  gpr::Observation obs;
+  // TODO: Moving is Free, but also needs to have Frozen Active
+  // Resizing can be only on free positions at the moment,
+  // They are the same
+  // XXX: Amazing resizing this to the "flattened" form WILL BREAK EVERYTHING
+  size_t nfree(matter.numberOfFreeAtoms()), dimens{3};
+  obs.R.resize(1, nfree * dimens);
+  obs.G.resize(1, nfree * dimens);
+  obs.E.resize(1);
+  auto pe_forces{matter.maybe_cached_energy_forces_free()};
+  obs.E.set(std::get<double>(pe_forces));
+  AtomMatrix freePos = matter.getPositionsFree();
+  AtomMatrix freeForces = std::get<AtomMatrix>(pe_forces);
+  for (size_t idx{0}; idx < nfree * dimens; ++idx){
+      obs.R(0, idx) = freePos.reshaped<Eigen::RowMajor>()[idx];
+      obs.G(0, idx) = -1 * freeForces.reshaped<Eigen::RowMajor>()[idx];
+  }
+  return obs;
 }
+
+gpr::Field<double> helper_functions::generateAtomsConfigField(const Matter& mat){
+  const size_t natoms = mat.numberOfAtoms();
+  gpr::Field<double> conf_prim; // always takes a 5 membered field
+  conf_prim.resize(natoms, 5);
+  gpr::EigenMatrix positions = mat.getPositions();
+  positions.conservativeResize(positions.rows(), 5);
+  for(size_t idx{0}; idx < natoms; idx++){
+    positions(idx, 3) = mat.getFixed(idx);
+    positions(idx, 4) = idx;
+  }
+  for (size_t idx{0}; idx < positions.size(); idx++){
+    conf_prim.getInternalVector()[idx] = positions.reshaped<Eigen::RowMajor>()[idx];
+  }
+  return conf_prim;
+}
+
+std::pair<double, AtomMatrix> helper_functions::energy_and_forces(Matter *matter, Potential *pot){
+  // TODO: Sanity checks, if the dynamic_cast fails it is a nullptr and so is
+  // not evaluated
+  // if (!pot->getName().compare("gpr_pot"s)){
+  //   return helper_functions::gpr_energy_and_forces(matter, static_cast<GPRPotential*>(pot));
+  // }
+  // std::cout<<"Calling "<<pot->getName()<<std::endl;
+  if (auto* gppot = dynamic_cast<GPRPotential*>(pot)){
+    return helper_functions::gpr_energy_and_forces(matter, gppot);
+  }
+  int nAtoms = matter->numberOfAtoms();
+  auto posdata = matter->getPositions();
+  auto celldat = matter->getCell();
+  AtomMatrix forces = AtomMatrix::Constant(nAtoms, 3, 0);
+  double *pos = posdata.reshaped<Eigen::RowMajor>().data();
+  double *frcs = forces.reshaped<Eigen::RowMajor>().data();
+  double *bx = celldat.reshaped<Eigen::RowMajor>().data();
+  double energy{0};
+  pot->force(nAtoms, pos, nullptr, frcs, &energy, bx, 1);
+  AtomMatrix finForces{forces};
+  for (int i = 0; i <nAtoms; i++){
+    if(matter->getFixed(i)){
+      finForces.row(i).setZero();
+    }
+  }
+  return std::make_pair(energy, finForces);
+}
+
+std::pair<double, AtomMatrix> helper_functions::energy_and_forces_free(Matter *matter, Potential *pot){
+  int nAtoms = matter->numberOfFreeAtoms();
+  auto posdata = matter->getPositionsFree();
+  auto celldat = matter->getCell();
+  AtomMatrix forces = AtomMatrix::Constant(nAtoms, 3, 0);
+  double *pos = posdata.reshaped<Eigen::RowMajor>().data();
+  double *frcs = forces.reshaped<Eigen::RowMajor>().data();
+  double *bx = celldat.reshaped<Eigen::RowMajor>().data();
+  double energy{0};
+  pot->force(nAtoms, pos, nullptr, frcs, &energy, bx, 1);
+  return std::make_pair(energy, forces);
+}
+
+std::pair<double, AtomMatrix> helper_functions::gpr_energy_and_forces(Matter *matter, GPRPotential *gprpot){
+  // Always free energies by design
+  int nFreeAtoms = matter->numberOfFreeAtoms();
+  auto posdata = matter->getPositionsFree();
+  auto celldat = matter->getCell();
+  return gprpot->force(posdata, celldat, 1);
+}
+
+std::pair<gpr::AtomsConfiguration, gpr::Coord> helper_functions::eon_matter_to_frozen_conf_info(Matter *matter, double activeRadius){
+  gpr::Coord R_init;
+  aux::ProblemSetUp problem_setup;
+  auto retconf = helper_functions::eon_matter_to_atmconf(matter);
+  gpr::EigenMatrix freePos = matter->getPositionsFree();
+  R_init.resize(1, freePos.size());
+  for (size_t idx{0}; idx < freePos.size(); ++idx) {
+    R_init(0, idx) = freePos.reshaped<Eigen::RowMajor>()[idx];
+  }
+  problem_setup.activateFrozenAtoms(R_init, activeRadius,
+                                    retconf);
+
+  return std::make_pair(retconf, R_init);
+}
+
+void helper_functions::MatterHolder::getEnergyGradient(const Eigen::VectorXd& w,
+                                   const gpr::EigenMatrix& x,
+                                   const Eigen::VectorXd& x_ind,
+                                   const Eigen::VectorXd& y,
+                                   gpr::EnergyAndGradient& energy_and_gradient){
+  if (this->mrr == nullptr){
+    throw std::runtime_error("Can't handle incorrectly initialized MatterHolder");
+    // return false;
+  }
+  double erg{mrr->getPotentialEnergy()};
+  Eigen::VectorXd grd = mrr->getForcesV();
+  energy_and_gradient.energy = &erg;
+  energy_and_gradient.gradient = &grd;
+  // return true;
+  }
+
+std::vector<Matter> helper_functions::prepInitialPath(
+           Parameters *params,
+           std::string fname_reactant,
+           std::string fname_product){
+  // Prep final, initial images
+  auto reactantFilename = helper_functions::getRelevantFile(fname_reactant);
+  auto productFilename = helper_functions::getRelevantFile(fname_product);
+  Matter initmatter(params), finalmatter(params);
+  initmatter.con2matter(reactantFilename);
+  finalmatter.con2matter(productFilename);
+  initmatter.getPotentialEnergy();
+  finalmatter.getPotentialEnergy();
+  // Setup path
+  const int natoms = initmatter.numberOfAtoms();
+  const int nimages = params->nebImages;
+  const int totImages = nimages + 2; // Final and end
+  std::vector<Matter> imageArray;
+  for (size_t idx{0}; idx < nimages+1; idx++){// Final added later
+    imageArray.emplace_back(initmatter);
+  }
+    auto posInit = initmatter.getPositions();
+    auto posFinal = finalmatter.getPositions();
+    const AtomMatrix imageSep = initmatter.pbc((posFinal-posInit)/(totImages-1));
+    for (double idx{0}; auto &image: imageArray){
+      image.setPositions(posInit + imageSep * idx);
+      ++idx;
+    }
+    // This must be after the loop above
+    imageArray.push_back(finalmatter);
+    return imageArray;
+}
+
+gpr::Observation helper_functions::prepInitialObs(std::vector<Matter> &vecmat) {
+  gpr::Observation resObs;
+  for (auto& mat : vecmat){
+    resObs.append(helper_functions::eon_matter_to_init_obs(mat));
+  }
+  return resObs;
+}
+
+bool helper_functions::maybeUpdateObs(NudgedElasticBand& neb, gpr::Observation& prevObs, Parameters& params){
+  // To prevent double calculations, we track the indices being compared
+  // If all forces are within the convergence --> no update
+  // If some images are within the convergence --> mark them as cachable (1)
+  //   Then append the rest (2)
+  bool updated{false};
+  double fmax{0};
+  // TODO: Handle climbingImage
+  // TODO: Handle different convergence measures
+  double nebConvergedForce {params.nebConvergedForce/10}, trupotdiff{0.0};
+  auto potential = Potential::getPotential(&params);
+  for (long idx {0}; idx <= neb.images+1; idx++){// excludes final, initial
+    auto [true_energy, true_forces] = helper_functions::energy_and_forces(neb.image[idx], potential);
+    trupotdiff = (neb.image[idx]->getForces() - true_forces).norm();
+    // std::cout<<trupotdiff<<std::endl;
+    if (trupotdiff > nebConvergedForce){
+      updated = true;
+      neb.image[idx]->getPotential(); // Make sure energy is present
+      neb.image[idx]->useCache = true; // For later
+    };
+  }
+  if (updated){
+    for (long idx {0}; idx <= neb.images+1; idx++){// prepare observation
+      // std::cout<<"Appending to image "<<idx<<"\n";
+      prevObs.append(helper_functions::eon_matter_to_init_obs(*neb.image[idx]));
+      // prevObs.printSizes();
+    }
+  }
+  return updated;
+}
+
+std::unique_ptr<NudgedElasticBand> helper_functions::prepGPRNEBround(GPRPotential& trainedGPR, Matter& reactant, Matter& product, Parameters& params){
+  reactant.setPotential(&trainedGPR);
+  product.setPotential(&trainedGPR);
+  auto neb = std::make_unique<NudgedElasticBand>(dynamic_cast<Matter*>(&reactant), dynamic_cast<Matter*>(&product), dynamic_cast<Parameters*>(&params));
+  for (long idx {0}; idx <= neb->images+1; idx++){// includes final, initial
+    neb->image[idx]->setPotential(&trainedGPR);
+  }
+  return neb;
+}
+
+gpr::GaussianProcessRegression& helper_functions::initializeGPR(gpr::GaussianProcessRegression& gprfunc,
+                                                                gpr::AtomsConfiguration& atoms_config,
+                                                                gpr::Observation& obsPath,
+                                                                std::pair<Parameters, Matter>& eon_matter_params){
+    auto initmatter = std::get<Matter>(eon_matter_params);
+    auto eonp = std::get<Parameters>(eon_matter_params);
+    gpr::GPRSetup gpr_parameters;
+    gpr_parameters.jitter_sigma2 = eonp.gprPotJitterSigma2;
+    gpr_parameters.sigma2 = eonp.gprPotSigma2;
+    gprfunc.setParameters(gpr_parameters);
+    auto  potparams = helper_functions::eon_parameters_to_gprpot(&eonp);
+    for (int i = 0; i < 9; i++) {
+        potparams.cell_dimensions.value[i] = initmatter.getCell()(i);
+    }
+    gprfunc.initialize(potparams, atoms_config);
+    return gprfunc;
+}
+
+double helper_functions::get_path_length(std::vector<Matter>& path){
+  std::vector<double> distances;
+  for (size_t idx{1}; idx < path.size(); idx++){
+    distances.push_back(path[idx].distanceTo(path[idx-1]));
+  }
+  return std::accumulate(distances.begin(), distances.end(), 0.0);
+}
+
+gpr::Coord helper_functions::single_img(const Matter& spoint){
+  gpr::Coord singleImg;
+  singleImg.resize(1, 3 * spoint.numberOfFreeAtoms());
+  size_t counter{0};
+  for(size_t row{0}; row < spoint.getPositionsFree().rows(); row++){
+    for(size_t col{0}; col < spoint.getPositionsFree().cols(); col++){
+      singleImg[counter++] = spoint.getPositionsFree()(row, col);
+    }
+  }
+  return singleImg;
+}
+
+gpr::Coord helper_functions::prev_path(const std::vector<Matter>& ppath){
+  gpr::Coord allImgs;
+  for(auto&& ppt : ppath){
+    allImgs.append(single_img(ppt));
+  }
+  return allImgs;
+}
+
+bool helper_functions::hasEarly1DmaxStopping(const Matter &cpoint,
+                                             const std::vector<Matter> &ppath,
+                                             const gpr::AtomsConfiguration &atoms_config,
+                                             const double ratioAtLimit){
+  gpr::Coord rnew, rall;
+  bool res {false};
+  aux::Distance distance;
+  gpr::Field<double> dist;
+  double disp1D_nearest;
+
+  rnew = single_img(cpoint);
+  rall = prev_path(ppath);
+
+  distance.dist_max1Dlog(rnew, rall, atoms_config, dist);
+  disp1D_nearest = dist.getMinElt();
+
+  if (disp1D_nearest > std::fabs(std::log(ratioAtLimit))) {
+    res = true;
+  }
+
+    return res;
+}
+
+// void setGPRPot(Matter& mat, gpr::GaussianProcessRegression* trainedGPR){
+//   GPRPotential gprpot{mat.getParameters()};
+//   gprpot.registerGPRObject(trainedGPR);
+//   mat.setPotential(&gprpot);
+// }

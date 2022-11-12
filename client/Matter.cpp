@@ -5,10 +5,15 @@
 #include "ObjectiveFunction.h"
 #include "BondBoost.h"
 
+#ifdef WITH_GPRD
+#include "GPRHelpers.h"
+#endif
+
 #include <cmath>
 #include <cstdlib>
 #include <cassert>
 #include <string.h>
+#include <typeinfo>
 
 using namespace std;
 
@@ -90,8 +95,33 @@ class MatterObjectiveFunction : public ObjectiveFunction
 };
 
 
+std::pair<double, AtomMatrix> Matter::maybe_cached_energy_forces(){
+    if (this->useCache){
+        useCache = false;
+        return std::make_pair(this->potentialEnergy, this->forces);
+    } else {
+        return std::make_pair(this->getPotentialEnergy(), this->getForces());
+    }
+}
 
-Matter::Matter(Parameters *parameters)
+std::pair<double, AtomMatrix> Matter::maybe_cached_energy_forces_free(){
+    if (this->useCache){
+        useCache = false;
+        AtomMatrix retforces(numberOfFreeAtoms(),3);
+        for(size_t i{0}, j{0}; i<nAtoms; i++)
+        {
+            if (!isFixed(i)) {
+                retforces.row(j) = this->forces.row(i);
+                j++;
+            }
+        }
+        return std::make_pair(this->potentialEnergy, retforces);
+    } else {
+        return std::make_pair(this->getPotentialEnergy(), this->getForcesFree());
+    }
+}
+
+Matter::Matter(Parameters *parameters) : useCache{false}
 {
     initializeDataMembers(parameters);
 }
@@ -116,11 +146,11 @@ void Matter::initializeDataMembers(Parameters *params)
     recomputePotential = true;
     forceCalls = 0;
     parameters = params;
-    potential = NULL; 
+    potential = NULL;
 }
 
 
-Matter::Matter(const Matter& matter)
+Matter::Matter(const Matter& matter)  : useCache{false}
 {
     operator=(matter);
 }
@@ -153,7 +183,8 @@ const Matter& Matter::operator=(const Matter& matter)
     usePeriodicBoundaries = matter.usePeriodicBoundaries;
 
     potentialEnergy = matter.potentialEnergy;
-    recomputePotential = matter.recomputePotential;
+    recomputePotential = true;
+    potential = nullptr;
 
     strcpy(headerCon1,matter.headerCon1);
     strcpy(headerCon2,matter.headerCon2);
@@ -195,6 +226,9 @@ bool Matter::compare(const Matter *matter, bool indistinguishable) {
 //    return !operator==(matter);
 //}
 
+Parameters* Matter::getParameters() const {
+    return this->parameters;
+}
 
 // Returns the distance to the given matter object.
 double Matter::distanceTo(const Matter& matter) 
@@ -465,12 +499,12 @@ AtomMatrix Matter::getForces()
 {
     computePotential();
     AtomMatrix ret = forces;
-    int i;
-    for(i=0; i<nAtoms; i++)
+    ret.conservativeResize(positions.rows(), positions.cols());
+    for(size_t idx{0}; idx < nAtoms; idx++)
     {
-        if(isFixed[i])
+        if(isFixed[idx])
         {
-            ret.row(i).setZero();
+            ret.row(idx).setZero();
         }
     }
     return ret;
@@ -925,6 +959,17 @@ bool Matter::con2matter(FILE *file)
     return(true);
 }
 
+void Matter::setPotential(Potential *pot){
+    // std::cout<<"Setting potential, resets calls";
+    // if(pot != nullptr){
+        this->potential = pot;
+    // }
+    recomputePotential = true;
+}
+
+Potential* Matter::getPotential(){
+    return this->potential;
+}
 
 void Matter::computePotential()
 {
@@ -935,7 +980,14 @@ void Matter::computePotential()
         }
 
         // TODO: Handle the number of system images better
-        forces = potential->force(nAtoms, positions, atomicNrs, &potentialEnergy, cell, 1);
+#ifdef WITH_GPRD
+        auto calcEF = helper_functions::energy_and_forces(this, potential);
+#endif
+#ifndef WITH_GPRD
+        auto calcEF = potential->force(positions, atomicNrs, cell, 1);
+#endif
+        potentialEnergy = std::get<double>(calcEF);
+        forces = std::get<AtomMatrix>(calcEF);
         forceCalls = forceCalls+1;
         recomputePotential = false;
 
@@ -987,6 +1039,15 @@ double Matter::maxForce(void)
     return maxForce;
 }
 
+VectorXi Matter::getAtomicNrs() const
+{
+    return this->atomicNrs;
+}
+
+VectorXi Matter::getAtomicNrsFree() const
+{
+    return this->atomicNrs.array() * getFreeV().cast<int>().array();
+}
 
 AtomMatrix Matter::getFree() const
 {
@@ -1006,7 +1067,6 @@ VectorXd Matter::getFreeV() const
 {
     return VectorXd::Map(getFree().data(),3*numberOfAtoms());
 }
-
 
 AtomMatrix Matter::getVelocities() const
 {

@@ -43,7 +43,9 @@ public:
 
     double distanceTo(const Matter& matter); // the distance to the given matter object
     double perAtomNorm(const Matter& matter); // the maximum distance between two atoms in the Matter objects
-    void setPotential(); // set potential function to use
+    // TODO: Handle parameters
+    void setPotential(Potential *pot); // set potential function to use
+    Potential* getPotential();
     void resize(long int nAtoms); // set or reset the number of atoms
     long int numberOfAtoms() const; // return the number of atoms
     Matrix3d getCell() const;
@@ -61,6 +63,8 @@ public:
     VectorXd getPositionsV() const;
     AtomMatrix getPositionsFree() const; // return coordinates of free atoms in array pos
     VectorXd getPositionsFreeV() const;
+    VectorXi getAtomicNrs() const;
+    VectorXi getAtomicNrsFree() const;
     void setPositions(const AtomMatrix pos); // update Matter with the new positions of the free atoms given in array pos
     void setPositionsV(const VectorXd pos);
     void setPositionsFree(const AtomMatrix pos); // update Matter with the new positions of the free atoms given in array pos
@@ -78,6 +82,7 @@ public:
     VectorXd   getForcesV();
     AtomMatrix getForcesFree();
     VectorXd   getForcesFreeV();
+    Parameters* getParameters() const;
 
     double getMass(long int atom) const; // return the mass of the atom specified
     void setMass(long int atom, double mass); // set the mass of an atom
@@ -117,6 +122,11 @@ public:
     VectorXd getFreeV() const;
     Matrix<double, Eigen::Dynamic, 1> getMasses() const;
 
+    //   The cachable mechanism is meant to facilitate appending converting matter
+    //   objects for the GPR without additional calls
+    bool useCache; // Meant to determine if the object's energy and forces can be read from cached_energy_forces
+    std::pair<double, AtomMatrix> maybe_cached_energy_forces(); // This is inherently unreliable, use with great caution, returns existing energy and forces
+    std::pair<double, AtomMatrix> maybe_cached_energy_forces_free(); // This is inherently unreliable, use with great caution, returns existing energy and forces
 
 private:
     Potential *potential; // pointer to function calculating the energy and forces

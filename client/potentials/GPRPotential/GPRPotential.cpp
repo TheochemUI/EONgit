@@ -63,18 +63,40 @@ void GPRPotential::initialize(void){
 void GPRPotential::cleanMemory(void){
 }
 
+std::pair<double, AtomMatrix> GPRPotential::force(AtomMatrix positions,
+                                    Matrix3d box, int nImages){
+    // std::cout<<"Hello from GPRPot\n";
+    const int nAtoms = positions.rows();
+    gpr::Observation obs;
+    obs.clear();
+    obs.R.resize(1, positions.size());
+    obs.G.resize(1, positions.size());
+    obs.E.resize(1);
+    for (size_t idx{0}; idx < positions.size(); ++idx) {
+        obs.R(0, idx) = positions.reshaped<Eigen::RowMajor>()[idx];
+    }
+
+    // TODO: Benchmark this, see Potential.cpp
+
+    // See GPRTrainTest.cpp for the functions to be called before this
+    this->gpr_model->calculatePotential(obs);
+
+    return std::make_pair(obs.E.extractEigenMatrix()(0),
+                          obs.G.extractEigenMatrix().reshaped<Eigen::RowMajor>(positions.rows(), positions.cols()) * -1);
+}
+
 // pointer to number of atoms, pointer to array of positions	
 // pointer to array of forces, pointer to internal energy
 // adress to supercell size
 void GPRPotential::force(long N, const double *R, const int *atomicNrs, double *F, double *U, const double *box, int nImages){
     gpr::Observation observation;
 
-    // Copy R points. Note, R should correspond to the moving atoms only.
+     // Copy R points. Note, R should correspond to the moving atoms only.
     observation.R.resize(1, N * 3);
+    // The rest are resized inside
     for(int i=0; i<N; i++){
         observation.R.set(i, {R[ 3*i ], R[3*i+1], R[3*i+2]});
     }
-
     // Note, the following functions should be called before calling for gpr_model->calculatePotential()
     // gpr_model->decomposeCovarianceMatrix(R, ind) - takes covariance matrix and vector of repetitive indices
     // gpr_model->calculateMeanPrediction() - takes a vector of combined energy and force
@@ -82,9 +104,9 @@ void GPRPotential::force(long N, const double *R, const int *atomicNrs, double *
     gpr_model->calculatePotential(observation);
 
     for(int i=0; i<N; i++){
-        F[ 3*i ] = observation.G[ 3*i ];
-        F[3*i+1] = observation.G[3*i+1];
-        F[3*i+2] = observation.G[3*i+2];
+        F[ 3*i ] = -1 * observation.G[ 3*i ];
+        F[3*i+1] = -1 * observation.G[3*i+1];
+        F[3*i+2] = -1 * observation.G[3*i+2];
     }
 
     // FIXME: Test conversion, E should only have one element here

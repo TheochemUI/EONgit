@@ -1,5 +1,6 @@
 #include "HelperFunctions.h"
 #include "Log.h"
+#include "external/icecream.hpp"
 
 #include <math.h>
 #include <cassert>
@@ -791,4 +792,33 @@ void helper_functions::pushApart(Matter *m1, double minDistance)
         m1->setPositions(r1);
         //m1->matter2con("movie.con", true);
     }
+}
+
+VectorXd helper_functions::unravel_free_coordsV(std::vector<Matter>& path){
+  VectorXd unravel_free;
+  const size_t nfree = path.front().numberOfFreeAtoms();
+  const size_t nimgs = path.size();
+  unravel_free.resize(3 * nfree * nimgs);
+  size_t crdx{0};
+  for (size_t idx{0}; idx < nimgs; idx++){
+    for (auto&& coord : path[idx].getPositionsFreeV()){
+      unravel_free[crdx] = coord;
+      crdx++;
+    }
+  }
+  return unravel_free;
+}
+
+VectorXd helper_functions::unravel_coordsV(std::vector<Matter>& path){
+  VectorXd unravel_all;
+  const size_t npoints = path.front().numberOfAtoms();
+  const size_t nimgs = path.size();
+  unravel_all.resize(3 * npoints * nimgs);
+  for (size_t idx {0};auto&& imgpoint : path){
+    idx++; // idx goes from [1, nimgs-1]
+    unravel_all.segment(3*npoints*(idx-1), 3*npoints) =
+      VectorXd::Map(imgpoint.getPositions().data(),
+                    3*npoints);
+  }
+  return unravel_all;
 }

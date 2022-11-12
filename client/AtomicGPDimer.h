@@ -8,13 +8,15 @@
 #include <vector>
 
 // Defined in the gprdimer target
-#include "subprojects/gprdimer/gpr/AtomicDimer.h"
+#include "subprojects/gprdimer/gpr/saddle_point/AtomicDimer.h"
 #include "subprojects/gprdimer/gpr/Enums.h"
+#include "subprojects/gprdimer/structures/Structures.h"
 #include "subprojects/gprdimer/gpr/auxiliary/ProblemSetUp.h"
 #include "subprojects/gprdimer/gpr/covariance_functions/ConstantCF.h"
 #include "subprojects/gprdimer/gpr/covariance_functions/SexpatCF.h"
 #include "subprojects/gprdimer/gpr/ml/GaussianProcessRegression.h"
 #include "subprojects/gprdimer/managers/io/FileManager.h"
+#include "subprojects/gprdimer/structures/Structures.h"
 
 // dimer method to find the lowest curvature mode
 class AtomicGPDimer : public LowestEigenmode {
@@ -36,6 +38,7 @@ private:
   AtomMatrix direction;       // direction along the dimer
   AtomMatrix rotationalPlane; // direction normal to the plane of dimer rotation
   Parameters *parameters;
+  AtomMatrix freeOrient; // Free orientation
 
   gpr::InputParameters p;
   atmd::AtomicDimer atomic_dimer;

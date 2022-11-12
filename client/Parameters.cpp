@@ -216,6 +216,40 @@ Parameters::Parameters(){
     gprDebugDy = 0.1; // debug_dy
     gprDebugDz = 0.1; // debug_dz
 
+    // [GPR Potential] //
+    truePotential = "morse_pt"; // reasonable default
+    // GPR Params
+    gprPotActiveRadius = 5.0; // actidst_fro
+    gprPotHyperOptMethod = "scg"; // optimization_alg
+    gprPotSigma2 = 1e-8; // gp_sigma2
+    gprPotJitterSigma2 = 0; // jitter_sigma2
+    gprPotNoiseSigma2 = 1e-8; // sigma2
+    gprPotPriorMu = 0; // prior_mu
+    gprPotPriorSigma2 = 1; //prior_s2
+    gprPotPriorNu = 20; // prior_nu
+    gprPotconstSigma2 = 0.0; // constSigma2
+    gprPotmagnSigma2 = 6.93874748072254e-009; // magnSigma2
+    gprPotTol = 1e-3; // gpr_pot_tol
+    // GPR Optimization Parameters
+    gprPotOptCheckDerivatives = false; // check_derivative
+    gprPotOptMaxIterations = 400; // max_iter
+    gprPotOptTolFunc = 1e-4; // tolerance_func
+    gprPotOptTolSol = 1e-4; // tolerance_sol
+    gprPotOptLambdaLimit = 1e17; // lambda_limit
+    gprPotOptLambdaInit = 10.0; // lambda
+    earlyStoppingFactor = 0.5; // % of path length
+    spConvergence = 0.01;
+    mepConvergence = 0.5;
+    toggleCI = false;
+    printSurfaces = false; // turning it on slows things down a lot
+    psXmin = 0.0;
+    psYmin = 0.0;
+    psXmax = 10.0;
+    psYmax = 10.0;
+    psZlvl = 0.0;
+    psXnelem = 5;
+    psYnelem = 5;
+
     // [Hessian] //
     hessianAtomList = string("All");
     hessianZeroFreqValue = 1e-6;
@@ -223,7 +257,7 @@ Parameters::Parameters(){
     // [Nudged Elastic Band] //
     nebImages = 5;
     nebSpring = 5.0;
-    nebClimbingImageMethod = true;
+    nebClimbingImageMethod = false;
     nebClimbingImageConvergedOnly = true;
     nebOldTangent = false;
     nebMaxIterations = 1000;
@@ -552,6 +586,42 @@ int Parameters::load(FILE *file){
         gprPruneBegin = (int)ini.GetValueL("GPR Dimer", "start_prune_at", gprPruneBegin);
         gprPruneNVals = (int)ini.GetValueL("GPR Dimer", "nprune_vals", gprPruneNVals);
         gprPruneThreshold = ini.GetValueF("GPR Dimer", "prune_threshold", gprPruneThreshold);
+
+        // [GPR Potential] //
+
+        // GPR Params
+        truePotential = toLowerCase(ini.GetValue("GPR Potential", "true_potential"));
+        gprPotTol = ini.GetValueF("GPR Potential", "gpr_pot_tol", gprPotTol);
+        gprPotActiveRadius = ini.GetValueF("GPR Potential", "active_radius", gprActiveRadius);
+        gprPotHyperOptMethod = ini.GetValue("GPR Potential", "hyperparameter_opt_method", gprPotHyperOptMethod);
+        gprPotSigma2 = ini.GetValueF("GPR Potential", "gpr_variance", gprPotSigma2);
+        gprPotJitterSigma2 = ini.GetValueF("GPR Potential", "gpr_jitter_variance", gprPotJitterSigma2);
+        gprPotNoiseSigma2 = ini.GetValueF("GPR Potential", "gpr_noise_variance", gprPotNoiseSigma2);
+        gprPotPriorMu = ini.GetValueF("GPR Potential", "prior_mean", gprPotPriorMu);
+        gprPotPriorSigma2 = ini.GetValueF("GPR Potential", "prior_variance", gprPotPriorSigma2);
+        gprPotPriorNu = ini.GetValueF("GPR Potential", "prior_degrees_of_freedom", gprPotPriorNu);
+        gprPotmagnSigma2 = ini.GetValueF("GPR Potential", "gpr_magnvariance", gprPotmagnSigma2);
+        gprPotconstSigma2 = ini.GetValueF("GPR Potential", "gpr_constvariance", gprPotconstSigma2);
+        // GPR Optimization Parameters
+        gprPotOptCheckDerivatives = ini.GetValueB("GPR Potential", "check_derivatives", gprPotOptCheckDerivatives);
+        gprPotOptMaxIterations = (int)ini.GetValueL("GPR Potential", "opt_max_iterations", gprPotOptMaxIterations);
+        gprPotOptTolFunc = ini.GetValueF("GPR Potential", "opt_tol_func", gprPotOptTolFunc);
+        gprPotOptTolSol = ini.GetValueF("GPR Potential", "opt_tol_sol", gprPotOptTolSol);
+        gprPotOptLambdaLimit = ini.GetValueF("GPR Potential", "opt_lambda_limit", gprPotOptLambdaLimit);
+        gprPotOptLambdaInit = ini.GetValueF("GPR Potential", "opt_lambda_init", gprPotOptLambdaInit);
+        printSurfaces = ini.GetValueB("GPR Potential", "print_surfaces", printSurfaces);
+        psXmin = ini.GetValueF("GPR Potential", "ps_xmin", psXmin);
+        psXmax = ini.GetValueF("GPR Potential", "ps_xmax", psXmax);
+        psYmin = ini.GetValueF("GPR Potential", "ps_ymin", psYmin);
+        psYmax = ini.GetValueF("GPR Potential", "ps_ymax", psYmax);
+        psZlvl = ini.GetValueF("GPR Potential", "ps_zlvl", psZlvl);
+        psXnelem = static_cast<size_t>(ini.GetValueL("GPR Potential", "ps_ne_x", psXnelem));
+        psYnelem = static_cast<size_t>(ini.GetValueL("GPR Potential", "ps_ne_y", psYnelem));
+        // TODO: Move these
+        earlyStoppingFactor = ini.GetValueF("GPR Potential", "early_stopping_factor", earlyStoppingFactor);
+        spConvergence = ini.GetValueF("GPR Potential", "saddle_convergence", spConvergence);
+        mepConvergence = ini.GetValueF("GPR Potential", "mep_convergence", mepConvergence);
+        toggleCI = ini.GetValueB("GPR Potential", "toggle_ci", toggleCI);
 
         // [Prefactor] //
 
