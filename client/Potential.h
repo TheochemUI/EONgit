@@ -74,6 +74,10 @@ class Potential
         static const char POT_QSC[];
 #endif
 
+#ifdef WITH_REXTPOT
+        static const char POT_REXT[];
+#endif
+
 #ifdef WITH_AMS
         static const char POT_AMS[];
         static const char POT_AMS_IO[];

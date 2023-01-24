@@ -59,6 +59,10 @@
 #endif
 #endif
 
+#ifdef WITH_REXTPOT
+    #include "potentials/RExtPot/RExtPot.h"
+#endif
+
 #ifdef WITH_AMS
     #include "potentials/AMS/AMS.h"
     #include "potentials/AMS_IO/AMS_IO.h"
@@ -126,6 +130,10 @@ const char Potential::POT_PYAMFF[] =      "pyamff";
 const char Potential::POT_QSC[] =         "qsc";
 #endif
 
+#ifdef WITH_REXTPOT
+const char Potential::POT_REXT[] =        "rext";
+#endif
+
 #ifdef WITH_AMS
 const char Potential::POT_AMS[] =         "ams";
 const char Potential::POT_AMS_IO[] =      "ams_io";
@@ -165,6 +173,11 @@ Potential *Potential::getPotential(Parameters *parameters)
 #endif
   else if (parameters->potential == POT_QSC)
     pot = new QSC();
+#endif
+
+#ifdef WITH_REXTPOT
+    else if(parameters->potential == POT_REXT)
+        pot = new RExtPot(parameters);
 #endif
 
 #ifdef WITH_AMS

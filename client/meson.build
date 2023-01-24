@@ -4,6 +4,7 @@ project('eonclient', 'cpp',
 
 host_system = host_machine.system()
 eon_extra_args = []
+eon_extra_inc = []
 
 add_languages('c', required: true)
 
@@ -33,6 +34,21 @@ absl_dep = dependency('absl', method : 'cmake',
   ],
   required : false,
 )
+
+# ------------- R Dependencies (Optional) ----------------------
+# Mostly kanged from https://github.com/eddelbuettel/rinside/blob/master/inst/examples/eigen/cmake/CMakeLists.txt
+rdep_includes = []
+rdep_linkto = []
+# Base R includes
+rdep_includes += run_command('R', 'CMD', 'config', '--cppflags').stdout().strip()
+# Base R library
+rdep_linkto += run_command('R', 'CMD', 'config', '--ldflags').stdout().strip()
+
+message(rdep_includes)
+message(rdep_linkto)
+# r_dep = declare_dependency(link_with : rdep_linkto,
+#                            include_directories : rdep_includes,
+#                            )
 
 boost_ams_dep = dependency('boost',
   modules : [
@@ -141,6 +157,16 @@ if get_option('with_vasp')
   endif
 endif
 
+if get_option('with_rextpot')
+  subdir('potentials/RExtPot')
+  potentials += [ rextpot ]
+ # eon_extra_inc += include_directories('/Users/rgoswami/micromamba/lib/R/library/RInside/include')
+ # eon_extra_inc += include_directories('/Users/rgoswami/micromamba/lib/R/library/RCppEigen/include')
+ # eon_extra_inc += include_directories('/Users/rgoswami/micromamba/lib/R/library/RCpp/include')
+ # eon_extra_inc += include_directories('/Users/rgoswami/micromamba/envs/eongit/lib/R/include')
+ eon_extra_args += ['-DWITH_REXTPOT']
+endif
+
 if get_option('with_water')
   subdir('potentials/Water')
   subdir('potentials/Water_H')
@@ -206,6 +232,7 @@ eclib = shared_library('eonlib',
                 dependencies : eon_deps,
                 link_with : potentials,
                 cpp_args : eon_extra_args,
+                include_directories : eon_extra_inc,
                 install : true)
 
 # ---------------------- Executable
@@ -221,4 +248,10 @@ ec1 = executable('testPot',
                 'testpot.cpp',
                 dependencies : eon_deps,
                 link_with : eclib,
+                )
+ec3 = executable('testRPot',
+                'testRPot.cpp',
+                dependencies : [ eon_deps ],
+                cpp_args: rdep_includes,
+                link_args : rdep_linkto
                 )

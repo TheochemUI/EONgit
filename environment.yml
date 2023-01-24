@@ -30,3 +30,7 @@ dependencies:
   - pytest-datadir
   - sh
   - sphinx
+  # For the R potentials
+  - r-rinside
+  - r-rcppeigen
+  - r
