@@ -118,6 +118,7 @@ public:
     VectorXd getFreeV() const;
     Eigen::Matrix<double, Eigen::Dynamic, 1> getMasses() const;
 
+    void setPotential(Potential *pot);            // set potential function to use
 
 private:
     Potential *potential; // pointer to function calculating the energy and forces

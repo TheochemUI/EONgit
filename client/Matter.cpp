@@ -1307,3 +1307,11 @@ void Matter::writeTibble(std::string fname){
     }
     return;
 }
+
+void Matter::setPotential(Potential *pot){
+    // std::cout<<"Setting potential, resets calls";
+    // if(pot != nullptr){
+        this->potential = pot;
+    // }
+    recomputePotential = true;
+}
