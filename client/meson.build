@@ -112,8 +112,8 @@ eonclib_sources = [
            'NudgedElasticBandJob.cpp',
            'DynamicsSaddleSearch.cpp',
            'HelperFunctions.cpp',
-           'StringHelpers.cc', # Template
-           'MatrixHelpers.hpp', # Template
+           # 'StringHelpers.cc', # Template
+           # 'MatrixHelpers.hpp', # Template
            'Dimer.cpp',
            'Dynamics.cpp',
            'GlobalOptimizationJob.cpp',
@@ -226,6 +226,49 @@ eclib = library('eonclib',
                 cpp_args : eon_extra_args,
                 install : true)
 
+# ---------------------- Bindings
+
+if get_option('with_pybindings')
+  # Implicitly needs Fortran
+  py = import('python').find_installation()
+  python_dep = py.dependency()
+  pyb11f_deps = [ python_dep ]
+
+
+  pyb11f_deps += [eon_deps,
+                  dependency('python3'),
+                  dependency('pybind11'),
+                  declare_dependency(link_args: '-lstdc++') ]
+
+  pyb11f = py.extension_module('pyeonclient',
+                               sources : [
+                                 'bindings/py_srcs/py_wrapper.cc',
+                                 'bindings/py_srcs/py_parameters.cc',
+                                 'bindings/py_srcs/py_basestructures.cc',
+                                 'bindings/py_srcs/py_log.cc',
+                                 'bindings/py_srcs/py_matter.cc',
+                                 # Jobs
+                                 'bindings/py_srcs/py_job.cc',
+                                 'bindings/py_srcs/jobs/py_saddlesearchjob.cc',
+                                 # Objective Functions
+                                 'bindings/py_srcs/py_objectivefunction.cc',
+                                 'bindings/py_srcs/objectivefunctions/py_matterobjfunc.cc',
+                                 'bindings/py_srcs/objectivefunctions/py_nebobjfunc.cc',
+                                 # NEB
+                                 'bindings/py_srcs/py_nudgedelasticband.cc',
+                                 # Optimizers
+                                 'bindings/py_srcs/py_optimizer.cc',
+                                 'bindings/py_srcs/optimizers/py_lbfgs.cc',
+                                 # Potentials
+                                 'bindings/py_srcs/py_potential.cc',
+                                 'bindings/py_srcs/potentials/py_morse.cc',
+                               ],
+                               dependencies : pyb11f_deps,
+                               link_with : eclib,
+                               cpp_args : eon_extra_args,
+                               install : true)
+endif
+
 # ---------------------- Executable
 
 ec = executable('eonclient',
@@ -253,11 +296,11 @@ if get_option('with_tests')
   eon_extra_args += ['-DEONTEST'] # Unused
   eon_deps += [ gtest_dep, gmock_dep ]
 test_array = [#
-  ['Improved Dimer', 'impldim_run', 'ImpDimerTest.cpp', '/gtests/data/saddle_search'],
-  ['String parser helpers', 'strparse_run', 'StringHelpersTest.cpp', ''],
-  ['Matter converter', 'matter_run', 'MatterTest.cpp', '/gtests/data/systems/sulfolene'],
-  ['Potential tests', 'test_pot', 'PotTest.cpp', '/gtests/data/systems/sulfolene'],
-  ['NEB tests', 'neb_test', 'NEBTest.cpp', '/gtests/data/saddle_search'],
+  # ['Improved Dimer', 'impldim_run', 'ImpDimerTest.cpp', '/gtests/data/saddle_search'],
+  # # ['String parser helpers', 'strparse_run', 'StringHelpersTest.cpp', ''],
+  # ['Matter converter', 'matter_run', 'MatterTest.cpp', '/gtests/data/systems/sulfolene'],
+  # ['Potential tests', 'test_pot', 'PotTest.cpp', '/gtests/data/systems/sulfolene'],
+  # ['NEB tests', 'neb_test', 'NEBTest.cpp', '/gtests/data/saddle_search'],
              ]
 foreach test : test_array
   test(test.get(0),

@@ -1,0 +1,191 @@
+---
+jupytext:
+  formats: ipynb,md:myst
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.14.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+---
+
+```{code-cell} ipython3
+:tags: []
+
+import numpy as np
+import numpy.typing as npt
+
+import pyeonclient as ec
+```
+
+```{code-cell} ipython3
+:tags: []
+
+params = ec.Parameters()
+params.load("../../examples/neb-al/config.ini") # NEB-Al
+ec.log_init(params, "blah.log") # Just in case
+```
+
+```{code-cell} ipython3
+:tags: []
+
+product = ec.Matter(params)
+product.con2matter("../../examples/neb-al/product.con")
+reactant = ec.Matter(params)
+reactant.con2matter("../../examples/neb-al/reactant.con")
+```
+
+```{code-cell} ipython3
+:tags: []
+
+mpot = ec.Morse(params)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+product.setPotential(mpot)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+product.pot_energy
+```
+
+```{code-cell} ipython3
+#mpot.get_ef(product)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+mpot.get_ef(product.positions, np.ones(product.numberOfAtoms()), product.getCell())
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1 = ec.Matter(params); m1.con2matter("../../examples/neb-al/product.con"); #mpot.force(m1);
+```
+
+```{code-cell} ipython3
+#mpot.force(m1)[1].shape
+```
+
+```{code-cell} ipython3
+:tags: []
+
+class FakePot(ec.Potential):
+    def __init__(self, params):
+        #params.potential = ec.PotType.PYTHON
+        ec.Potential.__init__(self, params)
+        self.counter = 1
+    def get_ef(self, a, b, c):
+        self.counter += 0.5
+        return (self.counter*0.33, 0.1*a*np.ones(601*3).reshape(601, 3))
+```
+
+```{code-cell} ipython3
+:tags: []
+
+fp = FakePot(params)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1.setPotential(fp)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1.pot_energy
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1.forces
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1.positions[np.mean(m1.getFree(), axis=1, dtype=bool)].shape
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1.positions[~np.mean(m1.getFree(), axis=1, dtype=bool)].shape
+```
+
+```{code-cell} ipython3
+:tags: []
+
+aa=(np.zeros((4,3))+np.array([1,2,3]))
+aa[:2]=np.zeros((1,3))
+```
+
+```{code-cell} ipython3
+:tags: []
+
+aa[~np.mean(aa, axis=1, dtype=bool)]
+```
+
+```{code-cell} ipython3
+:tags: []
+
+np.mean(m1.getFree(), axis=1) = m1.positions[np.mean(m1.getFree(), axis=1, dtype=bool)]
+```
+
+```{code-cell} ipython3
+:tags: []
+
+m1.free_positions.shape
+```
+
+```{code-cell} ipython3
+:tags: []
+
+##ec.callPotential(fp, product.positions, np.ones(product.numberOfAtoms()), product.getCell())
+```
+
+```{code-cell} ipython3
+:tags: []
+
+reactant.setPotential(fp)
+product.setPotential(fp)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+neb = ec.NudgedElasticBand(reactant, product, params, fp)
+neb.printImageData(True)
+```
+
+```{code-cell} ipython3
+:tags: []
+
+neb.compute()
+```
+
+```{code-cell} ipython3
+:tags: []
+
+[x.pot_energy for x in neb.neb_images]
+```
+
+```{code-cell} ipython3
+:tags: []
+
+params.potential = ec.PotType.LJ
+ljpot = ec.makePotential(params)
+ljpot.get_ef(product.positions, np.ones(product.numberOfAtoms()), product.getCell())
+```
