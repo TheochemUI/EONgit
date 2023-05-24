@@ -1,6 +1,6 @@
 project('eonclient', 'cpp',
   version : '0.1',
-  default_options : ['warning_level=3', 'cpp_std=c++17'])
+  default_options : ['warning_level=1', 'cpp_std=c++17'])
 
 host_system = host_machine.system()
 eon_extra_args = []
@@ -142,6 +142,8 @@ if get_option('with_vasp')
 endif
 
 if get_option('with_water')
+  add_languages('fortran', required: true)
+  fc = meson.get_compiler('fortran')
   subdir('potentials/Water')
   subdir('potentials/Water_H')
   subdir('potentials/Water_Pt')
@@ -186,8 +188,7 @@ if get_option('with_fortran')
   subdir('potentials/Lenosky')
   subdir('potentials/SW')
   subdir('potentials/Tersoff')
-  subdir('potentials/Water_H')
-  potentials += [aluminum, edip, fehe, lenosky, sw, tersoff, water_h]
+  potentials += [aluminum, edip, fehe, lenosky, sw, tersoff]
   eon_extra_args += ['-DWITH_FORTRAN']
 endif
 
