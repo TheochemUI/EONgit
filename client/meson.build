@@ -26,6 +26,8 @@ eon_deps = [ eigen_dep ]
 
 fmt_dep = dependency('fmt', method : 'cmake',  modules : ['fmt::fmt'],  required : true)
 eon_deps += fmt_dep
+spdlog_dep = dependency('spdlog', required : true)
+eon_deps += spdlog_dep
 
 # Testing only
 gtest_dep = dependency('gtest', main : true, required : true)
