@@ -13,17 +13,17 @@
 using namespace std;
 
 void singlePoint(std::unique_ptr<Matter> matter) {
-  printf("Energy:         %.10f\n", matter->getPotentialEnergy());
-  std::cout << "(free) Forces:         \n" << matter->getForcesFree() << "\n";
-  printf("Max atom force: %.10g\n", matter->maxForce());
+  fmt::printf("Energy:         %.10f\n", matter->getPotentialEnergy());
+  fmt::print("(free) Forces:         \n{}\n", matter->getForcesFree());
+  fmt::printf("Max atom force: %.10g\n", matter->maxForce());
 }
 
 void minimize(std::unique_ptr<Matter> matter, string confileout) {
   matter->relax(false, false);
   if (confileout.length() > 0) {
-    printf("saving relaxed structure to %s\n", confileout.c_str());
+    fmt::printf("saving relaxed structure to %s\n", confileout.c_str());
   } else {
-    printf("no output file specified, not saving\n");
+    fmt::printf("no output file specified, not saving\n");
   }
   matter->matter2con(confileout);
 }
@@ -89,8 +89,8 @@ void commandLine(int argc, char **argv) {
       usage();
       exit(0);
     case 'v':
-      printf("eonclient version r%s\n", VERSION);
-      printf("          compiled %s\n", BUILD_DATE);
+      fmt::printf("eonclient version r%s\n", VERSION);
+      fmt::printf("          compiled %s\n", BUILD_DATE);
       exit(0);
     case '?':
       if (optopt == 'p')
@@ -152,9 +152,9 @@ void commandLine(int argc, char **argv) {
   } else if (cflag) {
     params->checkRotation = true;
     if (matter->compare(*matter2, true)) {
-      printf("structures match\n");
+      fmt::printf("structures match\n");
     } else {
-      printf("structures do not match\n");
+      fmt::printf("structures do not match\n");
     }
   }
 

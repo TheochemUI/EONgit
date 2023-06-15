@@ -3,9 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
-
 using namespace std::string_literals; // For ""s
 
 // This file contains forward declarations and enum classes
