@@ -25,10 +25,12 @@ eigen_dep = dependency('Eigen3', method : 'cmake', modules : ['Eigen3::Eigen'], 
 eon_deps = [ eigen_dep ]
 
 fmt_dep = dependency('fmt',
-                     version: ['<10'],
+                     version: ['=9.1.0'],
                      required : true)
 eon_deps += fmt_dep
-spdlog_dep = dependency('spdlog', required : true)
+spdlog_dep = dependency('spdlog',
+                        version: ['=1.11.0'],
+                        required : true)
 eon_deps += spdlog_dep
 eon_extra_args += ['-DSPDLOG_FMT_EXTERNAL']
 
