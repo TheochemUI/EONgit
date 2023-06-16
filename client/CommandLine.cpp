@@ -1,8 +1,6 @@
 #include "CommandLine.h"
 #include "version.h"
 
-using namespace std;
-
 void singlePoint(std::unique_ptr<Matter> matter) {
   fmt::printf("Energy:         %.10f\n", matter->getPotentialEnergy());
   fmt::print("(free) Forces:         \n{}\n", fmt::streamed(matter->getForcesFree()));
@@ -20,22 +18,22 @@ void minimize(std::unique_ptr<Matter> matter, string confileout) {
 }
 
 void usage(void) {
-  fprintf(stderr, "Usage: eonclient [options] inputConfile [outputConfile]\n");
+  fmt::fprintf(stderr, "Usage: eonclient [options] inputConfile [outputConfile]\n");
   char fmtStr[] = "  -%-2s %s\n";
 
-  fprintf(stderr, "Job Type:\n");
-  fprintf(stderr, fmtStr, "v", "print version information");
-  fprintf(stderr, fmtStr, "m",
+  fmt::fprintf(stderr, "Job Type:\n");
+  fmt::fprintf(stderr, fmtStr, "v", "print version information");
+  fmt::fprintf(stderr, fmtStr, "m",
           "Minimization of inputConfile saves to outputConfile");
-  fprintf(stderr, fmtStr, "s", "Single point energy of inputConfile");
-  fprintf(stderr, fmtStr, "c",
+  fmt::fprintf(stderr, fmtStr, "s", "Single point energy of inputConfile");
+  fmt::fprintf(stderr, fmtStr, "c",
           "Compare structures of inputConfile to outputConfile");
-  fprintf(stderr, fmtStr, "o", "Optimization method [default: qm]");
-  fprintf(stderr, fmtStr, "f", "Convergence force [default: 0.001]");
-  fprintf(stderr, fmtStr, "t", "Distance tolerance [default: 0.1]");
+  fmt::fprintf(stderr, fmtStr, "o", "Optimization method [default: qm]");
+  fmt::fprintf(stderr, fmtStr, "f", "Convergence force [default: 0.001]");
+  fmt::fprintf(stderr, fmtStr, "t", "Distance tolerance [default: 0.1]");
 
-  fprintf(stderr, "Required Options:\n");
-  fprintf(stderr, fmtStr, "p", "The potential (e.g. qsc, lj, eam_al)");
+  fmt::fprintf(stderr, "Required Options:\n");
+  fmt::fprintf(stderr, fmtStr, "p", "The potential (e.g. qsc, lj, eam_al)");
 }
 
 void commandLine(int argc, char **argv) {
@@ -85,21 +83,21 @@ void commandLine(int argc, char **argv) {
       exit(0);
     case '?':
       if (optopt == 'p')
-        fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+        fmt::fprintf(stderr, "Option -%c requires an argument.\n", optopt);
       else
-        fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+        fmt::fprintf(stderr, "Unknown option `-%c'.\n", optopt);
       usage();
       exit(2);
     }
   }
 
   if (sflag && mflag) {
-    fprintf(stderr, "Cannot specify both minimization and single point\n");
+    fmt::fprintf(stderr, "Cannot specify both minimization and single point\n");
     exit(2);
   }
 
   if (!pflag && (sflag || mflag)) {
-    fprintf(stderr, "Must specify a potential\n");
+    fmt::fprintf(stderr, "Must specify a potential\n");
     exit(2);
   } else if (!cflag) {
     for (string::size_type i = 0; i < potential.length(); ++i) {
@@ -110,7 +108,7 @@ void commandLine(int argc, char **argv) {
   int extraArgs = argc - optind;
 
   if (extraArgs < 1) {
-    fprintf(stderr, "Only one non-option argument is allowed: the con file\n");
+    fmt::fprintf(stderr, "Only one non-option argument is allowed: the con file\n");
     exit(2);
   } else {
     confile = argv[optind];

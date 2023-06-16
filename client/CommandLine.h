@@ -7,8 +7,6 @@
 #include "Parameters.h"
 #include "Potential.h"
 
-#include <cstdlib>
-#include <string>
 #include <unistd.h>
 
 void commandLine(int argc, char **argv);
