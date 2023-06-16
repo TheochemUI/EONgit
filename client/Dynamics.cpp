@@ -42,8 +42,8 @@ void Dynamics::oneStep(int stepNumber) {
 
   if (stepNumber != -1) {
     if (stepNumber == 1) {
-      log("%s %8s %10s %12s %12s %10s\n", LOG_PREFIX, "Step", "KE", "PE", "TE",
-          "KinT");
+      log(fmt::format("{} {:8s} {:10s} {:12s} {:12s} {:10s}\n", LOG_PREFIX,
+                      "Step", "KE", "PE", "TE", "KinT"));
     }
     AtomMatrix velocity;
     double potE, kinE, kinT;
@@ -53,8 +53,8 @@ void Dynamics::oneStep(int stepNumber) {
     kinT = (2.0 * kinE / nFreeCoords / kB);
 
     if (stepNumber % parameters->writeMoviesInterval == 0) {
-      log("%s %8ld %10.4f %12.4f %12.4f %10.2f\n", LOG_PREFIX, stepNumber, kinE,
-          potE, kinE + potE, kinT);
+      log(fmt::format("{} {:8ld} {:10.4f} {:12.4f} {:12.4f} {:10.2f}\n",
+                      LOG_PREFIX, stepNumber, kinE, potE, kinE + potE, kinT));
     }
   }
 }
@@ -81,21 +81,22 @@ void Dynamics::run() {
   setThermalVelocity();
 
   if (parameters->thermostat != NONE) {
-    log("%s Running NVT molecular dynamics: %8.2lf K for %ld steps (%.4e s)\n",
-        LOG_PREFIX, temperature, parameters->mdSteps,
-        1e-15 * parameters->mdTimeStep * parameters->timeUnit *
-            parameters->mdSteps);
+    log(fmt::format("{} Running NVT molecular dynamics: {:8.2lf} K for {} "
+                    "steps ({:.4e} s)\n",
+                    LOG_PREFIX, temperature, parameters->mdSteps,
+                    1e-15 * parameters->mdTimeStep * parameters->timeUnit *
+                        parameters->mdSteps));
   } else {
-    log("%s Running NVE molecular dynamics: %ld steps\n", LOG_PREFIX,
-        parameters->mdSteps);
+    log(fmt::format("{} Running NVE molecular dynamics: {} steps\n", LOG_PREFIX,
+                    parameters->mdSteps));
   }
 
-  if (parameters->writeMovies == true) {
+  if (parameters->writeMovies) {
     matter->matter2con("dynamics", false);
   }
 
-  log("%s %8s %10s %12s %12s %10s\n", LOG_PREFIX, "step", "KE", "PE", "TE",
-      "kinT");
+  log(fmt::format("{} {:8s} {:10s} {:12s} {:12s} {:10s}\n", LOG_PREFIX, "step",
+                  "KE", "PE", "TE", "kinT"));
 
   for (long step = 0; step <= parameters->mdSteps; step++) {
     oneStep();
@@ -108,8 +109,8 @@ void Dynamics::run() {
     sumT2 += kinT * kinT;
 
     if (step % parameters->writeMoviesInterval == 0) {
-      log("%s %8ld %10.4f %12.4f %12.4f %10.2f\n", LOG_PREFIX, step, kinE, potE,
-          kinE + potE, kinT);
+      log(fmt::format("{} {:8ld} {:10.4f} {:12.4f} {:12.4f} {:10.2f}\n",
+                      LOG_PREFIX, step, kinE, potE, kinE + potE, kinT));
     }
 
     if ((parameters->writeMovies == true) &&
@@ -120,8 +121,10 @@ void Dynamics::run() {
   avgT = sumT / double(parameters->mdSteps);
   varT = sumT2 / double(parameters->mdSteps) - avgT * avgT;
   stdT = sqrt(varT);
-  log("%s Temperature : Average = %.2lf ; StdDev = %.2lf ; Factor = %.2lf\n",
-      LOG_PREFIX, avgT, stdT, varT / avgT / avgT * nFreeCoords / 2.0);
+  log(fmt::format("{} Temperature : Average = {:.2lf} ; StdDev = {:.2lf} ; "
+                  "Factor = {:.2lf}\n",
+                  LOG_PREFIX, avgT, stdT,
+                  varT / avgT / avgT * nFreeCoords / 2.0));
 }
 
 void Dynamics::andersenCollision() {

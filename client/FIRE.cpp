@@ -68,7 +68,7 @@ int FIRE::step(double maxMove) {
   // add a sanity check on dt
   if (dt < 1e-6) {
     cout << "Error in FIRE\n";
-    log_file("[FIRE] error, dt is too small: %.4f\n", dt);
+    log_file(fmt::format("[FIRE] error, dt is too small: {:.4f}\n", dt));
     //        exit(1);
     return -1;
   }

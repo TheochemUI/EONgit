@@ -75,8 +75,7 @@ public:
     } else if (params->optConvergenceMetric == "max_component") {
       return matter->getForces().maxCoeff();
     } else {
-      log("%s Unknown opt_convergence_metric: %s\n", LOG_PREFIX,
-          params->optConvergenceMetric.c_str());
+      log(fmt::format("{} Unknown opt_convergence_metric: {}\n", LOG_PREFIX, params->optConvergenceMetric));
       exit(1);
     }
   }
@@ -303,10 +302,11 @@ bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint,
   int iteration = 0;
   const char *forceLabel = parameters->optConvergenceMetricLabel.c_str();
   if (!quiet) {
-    log("%s %10s  %14s  %18s  %13s\n", LOG_PREFIX, "Iter", "Step size",
-        forceLabel, "Energy");
-    log("%s %10i  %14.5e  %18.5e  %13.5f\n", LOG_PREFIX, iteration, 0.0,
-        objf.getConvergence(), getPotentialEnergy());
+    log(fmt::format("{} {:10s}  {:14s}  {:18s}  {:13s}\n", LOG_PREFIX, "Iter",
+                    "Step size", forceLabel, "Energy"));
+    log(fmt::format("{} {:10i}  {:14.5e}  {:18.5e}  {:13.5f}\n", LOG_PREFIX,
+                    iteration, 0.0, objf.getConvergence(),
+                    getPotentialEnergy()));
   }
 
   while (!objf.isConverged() && iteration < parameters->optMaxIterations) {
@@ -320,8 +320,7 @@ bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint,
         helper_functions::maxAtomMotion(pbc(getPositions() - pos));
 
     if (!quiet) {
-      log("%s %10i  %14.5e  %18.5e  %13.5f\n", LOG_PREFIX, iteration, stepSize,
-          objf.getConvergence(), getPotentialEnergy());
+      log(fmt::format("{} {:10i}  {:14.5e}  {:18.5e}  {:13.5f}\n", LOG_PREFIX, iteration, stepSize, objf.getConvergence(), getPotentialEnergy()));
     }
 
     if (writeMovie) {
@@ -337,8 +336,7 @@ bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint,
 
   if (iteration == 0) {
     if (!quiet) {
-      log("%s %10i  %14.5e  %18.5e  %13.5f\n", LOG_PREFIX, iteration, 0.0,
-          objf.getConvergence(), getPotentialEnergy());
+      log(fmt::format("{} {:10i}  {:14.5e}  {:18.5e}  {:13.5f}\n", LOG_PREFIX, iteration, 0.0, objf.getConvergence(), getPotentialEnergy()));
     }
   }
   //    bool converged = optimizer->run(parameters->optMaxIterations,

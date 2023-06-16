@@ -43,7 +43,7 @@ void Lanczos::compute(std::shared_ptr<Matter> matter, AtomMatrix direction) {
 
   VectorXd force1, force2;
   auto pot = helper_functions::makePotential(params->potential, params);
-  auto tmpMatter =  std::make_unique<Matter>(pot, params);
+  auto tmpMatter = std::make_unique<Matter>(pot, params);
   *tmpMatter = *matter;
   force1 = tmpMatter->getForcesFreeV();
 
@@ -97,11 +97,13 @@ void Lanczos::compute(std::shared_ptr<Matter> matter, AtomMatrix direction) {
       statsAngle = acos(fabs(evEst.dot(evOldEst))) * (180 / M_PI);
       statsTorque = ewAbsRelErr;
       evOldEst = evEst;
-      log_file("[ILanczos] %9s %9s %10s %14s %9.4f %10.6f %7.3f %5i\n", "----",
-               "----", "----", "----", ew, ewAbsRelErr, statsAngle, i);
+      log_file(fmt::format("[ILanczos] {:9s} {:9s} {:10s} {:14s} {:9.4f} "
+                           "{:10.6f} {:7.3f} {:5d}\n",
+                           "----", "----", "----", "----", ew, ewAbsRelErr,
+                           statsAngle, i));
       if (ewAbsRelErr < params->lanczosTolerance) {
-        log_file("[ILanczos] Tolerence reached: %f\n",
-                 params->lanczosTolerance);
+        log_file(fmt::format("[ILanczos] Tolerance reached: {}\n",
+                             params->lanczosTolerance));
         break;
       }
     } else {
@@ -116,8 +118,8 @@ void Lanczos::compute(std::shared_ptr<Matter> matter, AtomMatrix direction) {
         if (ewAbsRelErr <= params->lanczosTolerance) {
           statsAngle = 0.0;
           statsTorque = ewAbsRelErr;
-          log_file("[ILanczos] Tolerence reached: %f\n",
-                   params->lanczosTolerance);
+          log_file(fmt::format("[ILanczos] Tolerance reached: {}\n",
+                               params->lanczosTolerance));
           break;
         }
       }
@@ -140,7 +142,6 @@ void Lanczos::compute(std::shared_ptr<Matter> matter, AtomMatrix direction) {
       j += 3;
     }
   }
-
 }
 
 double Lanczos::getEigenvalue() { return lowestEw; }

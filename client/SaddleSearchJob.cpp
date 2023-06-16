@@ -187,7 +187,7 @@ void SaddleSearchJob::printEndState(int status) {
     log("Optimizer error.\n");
 
   else
-    log("Unknown status: %i!\n", status);
+    log(fmt::format("Unknown status: {}!\n", status));
 
   return;
 }

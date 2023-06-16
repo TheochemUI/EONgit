@@ -90,7 +90,7 @@ double helper_functions::gaussRandom(double avg, double std) {
     v2 = 2.0 * randomDouble() - 1.0;
     r = v1 * v1 + v2 * v2;
   }
-  l = v1 * sqrt(-2.0 * log(r) / r);
+  l = v1 * sqrt(-2.0 * std::log(r) / r);
   result = avg + std * l;
   return (result);
 }

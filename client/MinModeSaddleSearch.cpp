@@ -141,8 +141,8 @@ public:
     } else if (params->optConvergenceMetric == "max_component") {
       return matter->getForces().maxCoeff();
     } else {
-      log("[MinModeSaddleSearch] unknown opt_convergence_metric: %s\n",
-          params->optConvergenceMetric.c_str());
+      log(fmt::format("[MinModeSaddleSearch] unknown opt_convergence_metric: {}\n",
+          params->optConvergenceMetric), spdlog::level::info);
       exit(1);
     }
   }
@@ -179,8 +179,9 @@ MinModeSaddleSearch::MinModeSaddleSearch(
 }
 
 int MinModeSaddleSearch::run() {
-  log("Saddle point search started from reactant with energy %f eV.\n",
-      reactantEnergy);
+  log(fmt::format(
+      "Saddle point search started from reactant with energy {} eV.\n",
+      reactantEnergy));
 
   int optStatus;
   int firstIteration = 1;
@@ -208,19 +209,22 @@ int MinModeSaddleSearch::run() {
   } else {
 
     if (params->saddleMinmodeMethod == LowestEigenmode::MINMODE_DIMER) {
-      log("[Dimer]  %9s   %9s   %10s   %18s   %9s   %7s   %6s   %4s\n", "Step",
-          "Step Size", "Delta E", forceLabel, "Curvature", "Torque", "Angle",
-          "Rots");
+      log(fmt::format("[Dimer]  {:9s}   {:9s}   {:10s}   {:18s}   {:9s}   "
+                      "{:7s}   {:6s}   {:4s}\n",
+                      "Step", "Step Size", "Delta E", forceLabel, "Curvature",
+                      "Torque", "Angle", "Rots"));
     } else if (params->saddleMinmodeMethod ==
                LowestEigenmode::MINMODE_LANCZOS) {
-      log("[Lanczos]  %9s %9s %10s %18s %9s %10s %7s %5s\n", "Step",
-          "Step Size", "Delta E", forceLabel, "Curvature", "Rel Change",
-          "Angle", "Iters");
+      log(fmt::format(
+          "[Lanczos]  {:9s} {:9s} {:10s} {:18s} {:9s} {:10s} {:7s} {:5s}\n",
+          "Step", "Step Size", "Delta E", forceLabel, "Curvature", "Rel Change",
+          "Angle", "Iters"));
     } else if (params->saddleMinmodeMethod ==
                LowestEigenmode::MINMODE_GPRDIMER) {
-      log("[GPRDimer]  %9s   %9s   %10s   %18s   %9s   %7s   %6s   %4s\n",
-          "Step", "Step Size", "Delta E", forceLabel, "Curvature", "Torque",
-          "Angle", "Rots");
+      log(fmt::format("[GPRDimer]  {:9s}   {:9s}   {:10s}   {:18s}   {:9s}   "
+                      "{:7s}   {:6s}   {:4s}\n",
+                      "Step", "Step Size", "Delta E", forceLabel, "Curvature",
+                      "Torque", "Angle", "Rots"));
     }
 
     ostringstream climb;
@@ -311,30 +315,28 @@ int MinModeSaddleSearch::run() {
       iteration++;
 
       if (params->saddleMinmodeMethod == LowestEigenmode::MINMODE_DIMER) {
-        log("[Dimer]  %9ld   %9.7f   %10.4f   %18.5e   %9.4f   %7.3f   %6.3f   "
-            "%4ld\n",
+        log(fmt::format("[Dimer]  {:9ld}   {:9.7f}   {:10.4f}   {:18.5e}   {:9.4f}   {:7.3f}   {:6.3f}   {:4ld}\n",
             iteration, stepSize, matter->getPotentialEnergy() - reactantEnergy,
             objf.getConvergence(), minModeMethod->getEigenvalue(),
             minModeMethod->statsTorque, minModeMethod->statsAngle,
-            minModeMethod->statsRotations);
+            minModeMethod->statsRotations));
       } else if (params->saddleMinmodeMethod ==
                  LowestEigenmode::MINMODE_LANCZOS) {
-        log("[Lanczos]  %9i %9.6f %10.4f %18.5e %9.4f %10.6f %7.3f %5i\n",
+        log(fmt::format("[Lanczos]  {:9d} {:9.6f} {:10.4f} {:18.5e} {:9.4f} {:10.6f} {:7.3f} {:5d}\n",
             iteration, stepSize, matter->getPotentialEnergy() - reactantEnergy,
             objf.getConvergence(), minModeMethod->getEigenvalue(),
             minModeMethod->statsTorque, minModeMethod->statsAngle,
-            minModeMethod->statsRotations);
+            minModeMethod->statsRotations));
       } else if (params->saddleMinmodeMethod ==
                  LowestEigenmode::MINMODE_GPRDIMER) {
-        log("[Dimer]  %9ld   %9.7f   %10.4f   %18.5e   %9.4f   %7.3f   %6.3f   "
-            "%4ld\n",
+        log(fmt::format("[Dimer]  {:9ld}   {:9.7f}   {:10.4f}   {:18.5e}   {:9.4f}   {:7.3f}   {:6.3f}   {:4ld}\n",
             iteration, stepSize, matter->getPotentialEnergy() - reactantEnergy,
             objf.getConvergence(), minModeMethod->getEigenvalue(),
             minModeMethod->statsTorque, minModeMethod->statsAngle,
-            minModeMethod->statsRotations);
+            minModeMethod->statsRotations));
       } else {
-        log("[MinModeSaddleSearch] Unknown min_mode_method: %s\n",
-            params->saddleMinmodeMethod.c_str());
+        log(fmt::format("[MinModeSaddleSearch] Unknown min_mode_method: {}\n",
+            params->saddleMinmodeMethod));
         exit(1);
       }
 

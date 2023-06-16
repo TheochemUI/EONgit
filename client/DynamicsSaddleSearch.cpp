@@ -37,7 +37,7 @@ int DynamicsSaddleSearch::run(void) {
 
   while (true) {
 
-    log("Dephasing: %i steps\n", dephaseSteps);
+    log(fmt::format("Dephasing: {} steps\n", dephaseSteps));
     // always start from the initial configuration
     *saddle = *reactant;
     dyn.setThermalVelocity();
@@ -83,8 +83,8 @@ int DynamicsSaddleSearch::run(void) {
     dyn.oneStep(step);
 
     if (step % recordInterval == 0 && recordInterval != 0) {
-      log("recording configuration at step %i time %.3f\n", step,
-          step * params->mdTimeStep * params->timeUnit);
+      log(fmt::format("recording configuration at step {} time {:.3f}\n", step,
+                 step * params->mdTimeStep * params->timeUnit));
       auto tmp = std::shared_ptr<Matter>(saddle);
       *tmp = *saddle;
       MDSnapshots.push_back(tmp);
@@ -96,7 +96,7 @@ int DynamicsSaddleSearch::run(void) {
     }
 
     if (step % checkInterval == 0) {
-      log("Minimizing trajectory, step %i\n", step);
+      log(fmt::format("Minimizing trajectory, step {}\n", step));
 
       *product = *saddle;
       product->relax(false, false);
@@ -106,13 +106,15 @@ int DynamicsSaddleSearch::run(void) {
         log("Found new state\n");
         int image = refineTransition(MDSnapshots, product);
         *saddle = *MDSnapshots[image];
-        log("Found transition at snapshot image %i\n", image);
+        log(fmt::format("Found transition at snapshot image {}\n", image));
         for (int ii = 0; ii < (int)MDTimes.size(); ii++)
-          log("MDTimes[%i] = %.3f\n", ii, MDTimes[ii] * params->timeUnit);
+          log(fmt::format("MDTimes[{}] = {:.3f}\n", ii,
+                          MDTimes[ii] * params->timeUnit));
         // subtract off half the record interval in order to not introduce a
         // systematic bias towards longer times.
         time = MDTimes[image] - params->saddleDynamicsRecordInterval / 2.0;
-        log("Transition time %.2f fs\n", time * params->timeUnit);
+        log(fmt::format("Transition time {:.2f} fs\n",
+                        time * params->timeUnit));
 
         NudgedElasticBand neb(reactant, product, params, pot);
 
@@ -186,11 +188,12 @@ int DynamicsSaddleSearch::run(void) {
               mode.normalize();
               minModeMethod->compute(saddle, mode);
               double eigenvalue = minModeMethod->getEigenvalue();
-              log("extrema #%i has eigenvalue %.8f\n", j + 1, eigenvalue);
-
+              log(fmt::format("extrema #{} has eigenvalue {:.8f}\n", j + 1,
+                              eigenvalue));
               if (eigenvalue < 0) {
-                log("chose image %i (extrema #%i) as extremum image\n",
-                    extremumImage, j + 1);
+                log(fmt::format(
+                    "chose image {} (extrema #{}) as extremum image\n",
+                    extremumImage, j + 1));
                 break;
               } else {
                 extremumImage = -1;
@@ -204,7 +207,7 @@ int DynamicsSaddleSearch::run(void) {
             *saddle = *neb.image[extremumImage];
             double interpDistance =
                 neb.extremumPosition[j] - (double)extremumImage;
-            log("interpDistance %f\n", interpDistance);
+            log(fmt::format("interpDistance {}\n", interpDistance));
             AtomMatrix bandDirection =
                 saddle->pbc(neb.image[extremumImage + 1]->getPositions() -
                             neb.image[extremumImage]->getPositions());
@@ -248,11 +251,11 @@ int DynamicsSaddleSearch::run(void) {
 
         eigenvalue = search.getEigenvalue();
         eigenvector = search.getEigenvector();
-        log("eigenvalue: %.3f\n", eigenvalue);
+        log(fmt::format("eigenvalue: {:.3f}\n", eigenvalue));
 
         double barrier =
             saddle->getPotentialEnergy() - reactant->getPotentialEnergy();
-        log("found barrier of %.3f\n", barrier);
+        log(fmt::format("found barrier of {:.3f}\n", barrier));
         MDSnapshots.clear();
         MDTimes.clear();
         // log("Force calls total: %i\n", Potential::fcallsTotal);
@@ -284,7 +287,7 @@ int DynamicsSaddleSearch::refineTransition(std::vector<std::shared_ptr<Matter>> 
 
   while ((max - min) > 1) {
     mid = min + (max - min) / 2;
-    log("minimizing image %i\n", mid);
+    log(fmt::format("minimizing image {}\n", mid));
     Matter snapshot(pot, params);
     snapshot = *MDSnapshots[mid];
 
@@ -293,10 +296,10 @@ int DynamicsSaddleSearch::refineTransition(std::vector<std::shared_ptr<Matter>> 
     midTest = snapshot.compare(*reactant);
 
     if (midTest) {
-      log("image %i minimizes to reactant\n", mid);
+      log(fmt::format("image {} minimizes to reactant\n", mid));
       min = mid;
     } else {
-      log("image %i minimizes to product\n", mid);
+      log(fmt::format("image {} minimizes to product\n", mid));
       *product = snapshot;
       max = mid;
     }

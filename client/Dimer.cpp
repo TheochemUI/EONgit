@@ -112,9 +112,10 @@ void Dimer::compute(std::shared_ptr<Matter> matter, AtomMatrix initialDirection)
       rotations++;
     }
 
-    log_file("[DimerRot]   -----   ---------   ----------------   ---------  % "
-             "9.3e  % 9.3e  % 9.3e   ---------\n",
-             curvature, torque, rotationAngle * (180.0 / M_PI));
+    log_file(
+        fmt::format("[DimerRot]   -----   ---------   ----------------   "
+                    "---------  {: 9.3e}  {: 9.3e}  {: 9.3e}   ---------\n",
+                    curvature, torque, rotationAngle * (180.0 / M_PI)));
   }
 
   statsTorque = torque;

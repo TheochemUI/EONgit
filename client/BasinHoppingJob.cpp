@@ -40,7 +40,7 @@ std::vector<std::string> BasinHoppingJob::run(void) {
 
   double randomProb = params->basinHoppingInitialRandomStructureProbability;
   if (randomProb > 0.0) {
-    log("generating random structure with probability %.4f\n", randomProb);
+    log(fmt::format("generating random structure with probability {:.4f}\n", randomProb));
   }
   double u = helper_functions::random();
   if (u < params->basinHoppingInitialRandomStructureProbability) {
@@ -71,10 +71,12 @@ std::vector<std::string> BasinHoppingJob::run(void) {
   FILE *pFile;
   pFile = fopen("bh.dat", "w");
 
-  log("[Basin Hopping] %4s %12s %12s %12s %4s %5s %5s\n", "step", "current",
-      "trial", "global min", "fc", "ar", "md");
-  log("[Basin Hopping] %4s %12s %12s %12s %4s %5s %5s\n", "----", "-------",
-      "-----", "----------", "--", "--", "--");
+  log(fmt::format(
+      "[Basin Hopping] {:4s} {:12s} {:12s} {:12s} {:4s} {:5s} {:5s}\n", "step",
+      "current", "trial", "global min", "fc", "ar", "md"));
+  log(fmt::format(
+      "[Basin Hopping] {:4s} {:12s} {:12s} {:12s} {:4s} {:5s} {:5s}\n", "----",
+      "-------", "-----", "----------", "--", "--", "--"));
 
   int recentAccept = 0;
   double curDisplacement = params->basinHoppingDisplacement;

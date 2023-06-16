@@ -113,7 +113,7 @@ int LBFGS::update(VectorXd r1, VectorXd r0, VectorXd f1, VectorXd f0) {
   // GH: added to prevent crashing
   if (abs(s0.dot(y0)) < LBFGS_EPS) {
     cout << "Error in LBFGS\n";
-    log_file("[LBFGS] error, s0.y0 is too small: %.4f\n", s0.dot(y0));
+    log_file(fmt::format("[LBFGS] error, s0.y0 is too small: {:.4f}\n", s0.dot(y0)));
     return -1;
   }
 

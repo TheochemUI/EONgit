@@ -29,7 +29,7 @@ int SteepestDescent::step(double maxMove) {
     if (alpha < 0) {
       alpha = parameters->optSDAlpha;
     }
-    log_file("[SD] alpha: %.4e\n", alpha);
+    log_file(fmt::format("[SD] alpha: {:.4e}\n", alpha));
   }
 
   dr = alpha * f;

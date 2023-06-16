@@ -37,11 +37,11 @@ std::vector<std::string> SafeHyperJob::run(void) {
   saveData(status);
 
   if (newStateFlag) {
-    log("Transition time: %.2e s\n",
-        minCorrectedTime * 1.0e-15 * params->timeUnit);
+    log(fmt::format("Transition time: {:.2e} s\n",
+                    minCorrectedTime * 1.0e-15 * params->timeUnit));
   } else {
-    log("No new state was found in %ld dynamics steps (%.3e s)\n",
-        params->mdSteps, time * 1.0e-15 * params->timeUnit);
+    log(fmt::format("No new state was found in {} dynamics steps ({:.3e} s)\n",
+                    params->mdSteps, time * 1.0e-15 * params->timeUnit));
   }
 
   delete current;
@@ -100,12 +100,13 @@ int SafeHyperJob::dynamics() {
   dephase();
   // dephaseFCalls = Potential::fcalls - refFCalls;
 
-  log("\nStarting MD run\nTemperature: %.2f Kelvin\n"
-      "Total Simulation Time: %.2f fs\nTime Step: %.2f fs\nTotal Steps: "
-      "%ld\n\n",
+  log(fmt::format(
+      "\nStarting MD run\nTemperature: {:.2f} Kelvin\nTotal Simulation Time: "
+      "{:.2f} fs\nTime Step: {:.2f} fs\nTotal Steps: {}\n\n",
       Temp, params->mdSteps * params->mdTimeStep * params->timeUnit,
-      params->mdTimeStep * params->timeUnit, params->mdSteps);
-  log("MD buffer length: %ld\n", mdBufferLength);
+      params->mdTimeStep * params->timeUnit, params->mdSteps));
+
+  log(fmt::format("MD buffer length: {}\n", mdBufferLength));
 
   long tenthSteps = params->mdSteps / 10;
   // This prevents and edge case division by zero if mdSteps is < 10
@@ -160,7 +161,7 @@ int SafeHyperJob::dynamics() {
       // minimizeFCalls += Potential::fcalls - refFCalls;
       if (transitionFlag == true) {
         nState++;
-        log("New State %ld: ", nState);
+        log(fmt::format("New State {}: ", nState));
         *final_tmp = *current;
         transitionTime = time;
         newStateStep = step; // remember the step when we are in a new state
@@ -198,12 +199,13 @@ int SafeHyperJob::dynamics() {
         *saddle = *mdBuffer[refineStep];
         *final = *final_tmp;
       }
-      log("tranisitonTime= %.3e s, biasPot= %.3f eV, correctedTime= %.3e s, "
-          "sumCorrectedTime= %.3e s, minCorTime= %.3e s\n",
+      log(fmt::format(
+          "tranisitonTime= {:.3e} s, biasPot= {:.3f} eV, correctedTime= {:.3e} "
+          "s, sumCorrectedTime= {:.3e} s, minCorTime= {:.3e} s\n",
           transitionTime * 1e-15 * params->timeUnit, transitionPot,
           correctedTime * 1e-15 * params->timeUnit,
           sumCorrectedTime * 1e-15 * params->timeUnit,
-          minCorrectedTime * 1.0e-15 * params->timeUnit);
+          minCorrectedTime * 1.0e-15 * params->timeUnit));
 
       // refineFCalls += Potential::fcalls - refFCalls;
       transitionFlag = false;
@@ -218,9 +220,8 @@ int SafeHyperJob::dynamics() {
     // stdout Progress
     if ((step % tenthSteps == 0) || (step == params->mdSteps)) {
       double maxAtomDistance = current->perAtomNorm(*reactant);
-      log("progress: %3.0f%%, max displacement: %6.3lf, step %7ld/%ld\n",
-          (double)100.0 * step / params->mdSteps, maxAtomDistance, step,
-          params->mdSteps);
+      log(fmt::format("progress: {:3.0f}%, max displacement: {:6.3lf}, step {:7ld}/{:ld}\n",
+                (double)100.0 * step / params->mdSteps, maxAtomDistance, step, params->mdSteps));
     }
   }
 
@@ -229,14 +230,16 @@ int SafeHyperJob::dynamics() {
   varT = sumT2 / step - avgT * avgT;
 
   if (nBoost > 0) {
-    log("\nTemperature : Average = %lf ; Stddev = %lf ; Factor = %lf; Boost = "
-        "%lf\n\n",
-        avgT, sqrt(varT), varT / avgT / avgT * nFreeCoord / 2,
-        sumboost / nBoost);
+    log(fmt::format("\nTemperature : Average = {} ; Stddev = {} ; Factor = {} "
+                    "; Boost = {}\n\n",
+                    avgT, std::sqrt(varT), varT / avgT / avgT * nFreeCoord / 2,
+                    sumboost / nBoost));
   } else {
-    log("\nTemperature : Average = %lf ; Stddev = %lf ; Factor = %lf\n\n", avgT,
-        sqrt(varT), varT / avgT / avgT * nFreeCoord / 2);
+    log(fmt::format(
+        "\nTemperature : Average = {} ; Stddev = {} ; Factor = {}\n\n", avgT,
+        std::sqrt(varT), varT / avgT / avgT * nFreeCoord / 2));
   }
+
   if (isfinite(avgT) == 0) {
     log("Infinite average temperature, something went wrong!\n");
     newStateFlag = false;
@@ -334,7 +337,7 @@ void SafeHyperJob::dephase() {
 
   DephaseSteps = int(params->parrepDephaseTime / params->mdTimeStep);
   Dynamics dephaseDynamics(current, params.get());
-  log("Dephasing for %.2f fs\n", params->parrepDephaseTime * params->timeUnit);
+  log(fmt::format("Dephasing for {:.2f} fs\n", params->parrepDephaseTime * params->timeUnit));
 
   step = stepNew = loop = 0;
 
@@ -354,12 +357,15 @@ void SafeHyperJob::dephase() {
 
     if (transitionFlag) {
       dephaseRefineStep = refine(dephaseBuffer, dephaseBufferLength, reactant);
-      log("loop = %ld; dephase refine step = %ld\n", loop, dephaseRefineStep);
+      log(fmt::format("loop = {}; dephase refine step = {}\n", loop,
+                      dephaseRefineStep));
+
       transitionStep = dephaseRefineStep - 1; // check that this is correct
       transitionStep = (transitionStep > 0) ? transitionStep : 0;
-      log("Dephasing warning: in a new state, inverse the momentum and restart "
-          "from step %ld\n",
-          step + transitionStep);
+
+      log(fmt::format("Dephasing warning: in a new state, inverse the momentum "
+                      "and restart from step {}\n",
+                      step + transitionStep));
       *current = *dephaseBuffer[transitionStep];
       velocity = current->getVelocities();
       velocity = velocity * (-1);
@@ -376,13 +382,14 @@ void SafeHyperJob::dephase() {
 
     if ((params->parrepDephaseLoopStop) &&
         (loop > params->parrepDephaseLoopMax)) {
-      log("Reach dephase loop maximum, stop dephasing! Dephased for %ld "
-          "steps\n ",
-          step);
+      log(fmt::format(
+          "Reach dephase loop maximum, stop dephasing! Dephased for {} steps\n",
+          step));
       break;
     }
-    log("Successfully Dephased for %.2f fs",
-        step * params->mdTimeStep * params->timeUnit);
+
+    log(fmt::format("Successfully Dephased for {:.2f} fs",
+                    step * params->mdTimeStep * params->timeUnit));
   }
 }
 

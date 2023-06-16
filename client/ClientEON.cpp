@@ -80,7 +80,6 @@ void printSystemInfo() {
 
 int main(int argc, char **argv) {
   Parameters parameters;
-
 #ifdef EONMPI
   bool client_standalone = false;
   if (getenv("EON_CLIENT_STANDALONE") != NULL) {
@@ -346,7 +345,7 @@ int main(int argc, char **argv) {
       try {
         filenames = job->run();
       } catch (int e) {
-        log("[ERROR] job exited on error %d\n", e);
+        log(fmt::format("[ERROR] job exited on error {}\n", e));
       }
 
       filenames.push_back(std::string("client.log"));
@@ -358,7 +357,6 @@ int main(int argc, char **argv) {
         bundledFilenames = filenames;
       }
 
-      log_close();
     }
 
 #ifdef EONMPI

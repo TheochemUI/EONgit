@@ -74,12 +74,12 @@ int Prefactor::getPrefactors(Parameters *parameters, Matter *min1,
   int i, numNegFreq = 0;
   for (i = 0; i < size; i++) {
     if (min1Freqs(i) < 0) {
-      log("[Prefactor] min1 had negative mode of %e\n", min1Freqs(i));
+      log(fmt::format("[Prefactor] min1 had negative mode of {}\n", min1Freqs(i)));
       numNegFreq++;
     }
   }
   if (numNegFreq != 0) {
-    log("[Prefactor] Error: %i negative modes at min1\n", numNegFreq);
+    log(fmt::format("[Prefactor] Error: {} negative modes at min1\n", numNegFreq));
     return -1;
   }
 
@@ -90,7 +90,7 @@ int Prefactor::getPrefactors(Parameters *parameters, Matter *min1,
     }
   }
   if (numNegFreq != 1) {
-    log("Error: %i negative modes at saddle\n", numNegFreq);
+    log(fmt::format("Error: {} negative modes at saddle\n", numNegFreq));
     return -1;
   }
 
@@ -101,7 +101,7 @@ int Prefactor::getPrefactors(Parameters *parameters, Matter *min1,
     }
   }
   if (numNegFreq != 0) {
-    log("Error: %i negative modes at min2\n", numNegFreq);
+    log(fmt::format("Error: {} negative modes at min2\n", numNegFreq));
     return -1;
   }
 
@@ -140,16 +140,17 @@ int Prefactor::getPrefactors(Parameters *parameters, Matter *min1,
     pref1 = 2. * kB_T / (h)*pref1;
     pref2 = 2. * kB_T / (h)*pref2;
   }
-  log("[Prefactor] reactant to product prefactor: %.3e\n", pref1);
-  log("[Prefactor] product to reactant prefactor: %.3e\n", pref2);
+  log(fmt::format("[Prefactor] reactant to product prefactor: {:.3e}\n",
+                  pref1));
+  log(fmt::format("[Prefactor] product to reactant prefactor: {:.3e}\n",
+                  pref2));
   return 0;
 }
 
 void Prefactor::logFreqs(VectorXd freqs, char *name) {
-  log_file("[Prefactor] Frequencies at %s\n", name);
-  int i;
-  for (i = 0; i < freqs.size(); i++) {
-    log_file("%10.6f ", freqs(i));
+  log_file(fmt::format("[Prefactor] Frequencies at {}\n", name));
+  for (int i = 0; i < freqs.size(); i++) {
+    log_file(fmt::format("{:10.6f} ", freqs(i)));
     if ((i + 1) % 5 == 0) {
       log_file("\n");
     }
@@ -215,8 +216,8 @@ VectorXi Prefactor::movedAtomsPct(Parameters *parameters, Matter *min1,
   VectorXd diff(nAtoms);
   diff.setConstant(0.0);
 
-  log("[Prefactor] including all atoms that make up %.3f%% of the motion\n",
-      parameters->prefactorFilterFraction * 100);
+  log(fmt::format("[Prefactor] including all atoms that make up {:.3f}% of the motion\n",
+                 parameters->prefactorFilterFraction * 100));
   double sum = 0.0;
   int mini = 0;
   for (int i = 0; i < nAtoms; i++) {
@@ -227,8 +228,8 @@ VectorXi Prefactor::movedAtomsPct(Parameters *parameters, Matter *min1,
     }
   }
 
-  log("[Prefactor] sum of atom distances moved %.4f\n", sum);
-  log("[Prefactor] max moved atom distance: %.4f\n", diff.maxCoeff());
+  log(fmt::format("[Prefactor] sum of atom distances moved {:.4f}\n", sum));
+  log(fmt::format("[Prefactor] max moved atom distance: {:.4f}\n", diff.maxCoeff()));
 
   int nMoved = 0;
   double d = 0.0;
@@ -263,9 +264,8 @@ VectorXi Prefactor::movedAtomsPct(Parameters *parameters, Matter *min1,
       }
     }
   }
-  log("[Prefactor] including %i atoms in the hessian (%i moved + %i "
-      "neighbors)\n",
-      totalAtoms, nMoved, totalAtoms - nMoved);
+  log(fmt::format("[Prefactor] including {} atoms in the hessian ({} moved + {} neighbors)\n",
+                 totalAtoms, nMoved, totalAtoms - nMoved));
   return (VectorXi)moved.block(0, 0, totalAtoms, 1);
 }
 

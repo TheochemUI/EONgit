@@ -52,19 +52,21 @@ std::vector<std::string> ReplicaExchangeJob::run(void) {
     }
   } else if (params->repexcTemperatureDistribution == "exponential") {
     double kTemp =
-        log(params->repexcTemperatureHigh / params->repexcTemperatureLow) /
+        std::log(params->repexcTemperatureHigh / params->repexcTemperatureLow) /
         (params->repexcReplicas - 1.0);
     // cout <<"kTemp: "<<kTemp<<endl;
     for (i = 0; i < params->repexcReplicas; i++) {
       replicaTemperature[i] = params->repexcTemperatureLow * exp(kTemp * i);
       replicaDynamics[i]->setTemperature(replicaTemperature[i]);
-      log("replica: %ld temperature %.0f \n", i + 1, replicaTemperature[i]);
+      log(fmt::format("replica: {} temperature {:.0f} \n", i + 1,
+                      replicaTemperature[i]));
     }
   }
 
-  log("\nReplica Exchange sampling for %.0f fs; %ld steps; %ld replicas.\n",
+  log(fmt::format(
+      "\nReplica Exchange sampling for {:.0f} fs; {} steps; {} replicas.\n",
       params->repexcSamplingTime * 10.18, samplingSteps,
-      params->repexcReplicas);
+      params->repexcReplicas));
 
   for (step = 1; step <= samplingSteps; step++) {
     for (i = 0; i < params->repexcReplicas; i++) {

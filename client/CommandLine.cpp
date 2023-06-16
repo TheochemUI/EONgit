@@ -120,7 +120,7 @@ void commandLine(int argc, char **argv) {
   params->optMethod = optimizer;
   params->optConvergedForce = optConvergedForce;
 
-  log_init(params.get(), (char *)"client.log");
+  // Logger::getInstance().logInit("log.txt");
 
   auto pot = helper_functions::makePotential(params);
   auto matter = std::make_unique<Matter>(pot, params);

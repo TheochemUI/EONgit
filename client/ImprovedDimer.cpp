@@ -276,13 +276,15 @@ void ImprovedDimer::compute(std::shared_ptr<Matter> matter,
       statsTorque = F_R.norm() / (2.0 * params->finiteDifference);
       statsRotations += 1;
 
-      log_file("[IDimerRot]  -----   ---------   ----------   "
-               "------------------   %9.4f   %7.3f   %6.2f   %4ld\n",
-               C_tau, statsTorque, statsAngle, statsRotations);
+      log_file(fmt::format(
+          "[IDimerRot]  -----   ---------   ----------   ------------------   "
+          "{:9.4f}   {:7.3f}   {:6.2f}   {:4ld}\n",
+          C_tau, statsTorque, statsAngle, statsRotations));
     } else {
-      log_file("[IDimerRot]  -----   ---------   ----------   "
-               "------------------   %9.4f   %7.3f   ------   ----\n",
-               C_tau, F_R.norm() / delta);
+      log_file(fmt::format(
+          "[IDimerRot]  -----   ---------   ----------   ------------------   "
+          "{:9.4f}   {:7.3f}   ------   ----\n",
+          C_tau, F_R.norm() / delta));
     }
 
   } while (abs(phi_prime) > abs(phi_tol) and abs(phi_min) > abs(phi_tol) and

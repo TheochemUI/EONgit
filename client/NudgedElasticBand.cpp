@@ -153,8 +153,7 @@ NudgedElasticBand::NEBStatus NudgedElasticBand::compute(void) {
   Optimizer *optimizer = Optimizer::getOptimizer(&objf, params.get());
 
   const char *forceLabel = params->optConvergenceMetricLabel.c_str();
-  log("%10s %12s %14s %11s %12s\n", "iteration", "step size", forceLabel,
-      "max image", "max energy");
+  log(fmt::format("{:10s} {:12s} {:14s} {:11s} {:12s}\n", "iteration", "step size", forceLabel, "max image", "max energy"));
   log("---------------------------------------------------------------\n");
 
   char fmt[] = "%10li %12.4e %14.4e %11li %12.4f\n";
@@ -182,9 +181,11 @@ NudgedElasticBand::NEBStatus NudgedElasticBand::compute(void) {
     double stepSize = helper_functions::maxAtomMotionV(
         image[0]->pbcV(objf.getPositions() - pos));
     if (dE > 0.01) {
-      log(fmt, iteration, stepSize, convergenceForce(), maxEnergyImage, dE);
+      log(fmt::format(fmt, iteration, stepSize, convergenceForce(),
+                      maxEnergyImage, dE));
     } else {
-      log(fmtTiny, iteration, stepSize, convergenceForce(), maxEnergyImage, dE);
+      log(fmt::format(fmtTiny, iteration, stepSize, convergenceForce(),
+                      maxEnergyImage, dE));
     }
   }
 
@@ -223,8 +224,9 @@ double NudgedElasticBand::convergenceForce(void) {
     } else if (params->optConvergenceMetric == "max_component") {
       fmax = max(fmax, projectedForce[i]->maxCoeff());
     } else {
-      log("[Nudged Elastic Band] unknown opt_convergence_metric: %s\n",
-          params->optConvergenceMetric.c_str());
+      log(fmt::format(
+          "[Nudged Elastic Band] unknown opt_convergence_metric: {}\n",
+          params->optConvergenceMetric.c_str()));
       exit(1);
     }
     if (params->nebClimbingImageConvergedOnly == true &&
@@ -407,9 +409,10 @@ void NudgedElasticBand::printImageData(bool writeToFile) {
       distTotal += dist;
     }
     if (fh == NULL) {
-      log("%3li %12.6f %12.6f %12.6f\n", i, distTotal,
-          image[i]->getPotentialEnergy() - image[0]->getPotentialEnergy(),
-          (image[i]->getForces().array() * tang.array()).sum());
+      log(fmt::format("{:3li} {:12.6f} {:12.6f} {:12.6f}\n", i, distTotal,
+                      image[i]->getPotentialEnergy() -
+                          image[0]->getPotentialEnergy(),
+                      (image[i]->getForces().array() * tang.array()).sum()));
     } else {
       fprintf(fh, "%3li %12.6f %12.6f %12.6f\n", i, distTotal,
               image[i]->getPotentialEnergy() - image[0]->getPotentialEnergy(),
@@ -500,12 +503,13 @@ void NudgedElasticBand::findExtrema(void) {
     }
   }
 
-  log("\nFound %li extrema\n", numExtrema);
-  log("Energy reference: %f\n", image[0]->getPotentialEnergy());
+  log(fmt::format("\nFound {} extrema\n", numExtrema));
+  log(fmt::format("Energy reference: {}\n", image[0]->getPotentialEnergy()));
   for (long i = 0; i < numExtrema; i++) {
-    log("extrema #%li at image position %f with energy %f and curvature %f\n",
+    log(fmt::format(
+        "extrema #{} at image position {} with energy {} and curvature {}\n",
         i + 1, extremumPosition[i],
         extremumEnergy[i] - image[0]->getPotentialEnergy(),
-        extremumCurvature[i]);
+        extremumCurvature[i]));
   }
 }

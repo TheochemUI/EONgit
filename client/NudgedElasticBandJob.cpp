@@ -124,6 +124,6 @@ void NudgedElasticBandJob::printEndState(NudgedElasticBand::NEBStatus status) {
   else if (status == NudgedElasticBand::NEBStatus::STATUS_BAD_MAX_ITERATIONS)
     log("Nudged elastic band, too many iterations.\n");
   else
-    log("Unknown status: %i!\n", status);
+    log(fmt::format("Unknown status: {}!\n", int(status)));
   return;
 }
