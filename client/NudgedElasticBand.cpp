@@ -156,9 +156,6 @@ NudgedElasticBand::NEBStatus NudgedElasticBand::compute(void) {
   log(fmt::format("{:10s} {:12s} {:14s} {:11s} {:12s}\n", "iteration", "step size", forceLabel, "max image", "max energy"));
   log("---------------------------------------------------------------\n");
 
-  char fmt[] = "%10li %12.4e %14.4e %11li %12.4f\n";
-  char fmtTiny[] = "%10li %12.4e %14.4e %11li %12.4e\n";
-
   while (!objf.isConverged()) {
     if (params->writeMovies) {
       bool append = true;
@@ -181,11 +178,11 @@ NudgedElasticBand::NEBStatus NudgedElasticBand::compute(void) {
     double stepSize = helper_functions::maxAtomMotionV(
         image[0]->pbcV(objf.getPositions() - pos));
     if (dE > 0.01) {
-      log(fmt::format(fmt, iteration, stepSize, convergenceForce(),
-                      maxEnergyImage, dE));
+      log(fmt::format("{} {:12.4e} {:14.4e} {} {:12.4f}\n", iteration,
+                      stepSize, convergenceForce(), maxEnergyImage, dE));
     } else {
-      log(fmt::format(fmtTiny, iteration, stepSize, convergenceForce(),
-                      maxEnergyImage, dE));
+      log(fmt::format("{} {:12.4e} {:14.4e} {} {:12.4e}\n", iteration,
+                      stepSize, convergenceForce(), maxEnergyImage, dE));
     }
   }
 
