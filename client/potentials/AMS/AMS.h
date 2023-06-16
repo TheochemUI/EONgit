@@ -25,8 +25,6 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <fmt/core.h>
-#include <fmt/format.h>
 #include <fstream>
 #include <string>
 

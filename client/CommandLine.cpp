@@ -1,20 +1,11 @@
 #include "CommandLine.h"
-#include "ConjugateGradients.h"
-#include "Log.h"
-#include "Matter.h"
-#include "Parameters.h"
-#include "Potential.h"
 #include "version.h"
-
-#include <cstdlib>
-#include <string>
-#include <unistd.h>
 
 using namespace std;
 
 void singlePoint(std::unique_ptr<Matter> matter) {
   fmt::printf("Energy:         %.10f\n", matter->getPotentialEnergy());
-  fmt::print("(free) Forces:         \n{}\n", matter->getForcesFree());
+  fmt::print("(free) Forces:         \n{}\n", fmt::streamed(matter->getForcesFree()));
   fmt::printf("Max atom force: %.10g\n", matter->maxForce());
 }
 

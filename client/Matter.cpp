@@ -11,9 +11,6 @@
 #include <stdexcept>
 #include <string.h>
 
-// To write the R style data frame
-#include <fmt/os.h>
-
 using namespace std;
 
 static const char LOG_PREFIX[] = "[Matter]";

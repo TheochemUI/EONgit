@@ -1,7 +1,15 @@
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
-#include <fmt/printf.h>
+#include "ConjugateGradients.h"
+#include "Log.h"
+#include "Matter.h"
+#include "Parameters.h"
+#include "Potential.h"
+
+#include <cstdlib>
+#include <string>
+#include <unistd.h>
 
 void commandLine(int argc, char **argv);
 

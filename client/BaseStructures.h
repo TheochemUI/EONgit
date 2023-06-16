@@ -3,6 +3,17 @@
 #include <memory>
 #include <string>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <fmt/printf.h>
+#include <fmt/ostream.h>
+// To write the R style data frame
+#include <fmt/os.h>
+
 using namespace std::string_literals; // For ""s
 
 // This file contains forward declarations and enum classes
