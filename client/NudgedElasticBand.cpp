@@ -409,7 +409,7 @@ void NudgedElasticBand::printImageData(bool writeToFile) {
       distTotal += dist;
     }
     if (fh == NULL) {
-      log(fmt::format("{:3li} {:12.6f} {:12.6f} {:12.6f}\n", i, distTotal,
+      fmt::print(fmt::format("{} {:12.6f} {:12.6f} {:12.6f}\n", i, distTotal,
                       image[i]->getPotentialEnergy() -
                           image[0]->getPotentialEnergy(),
                       (image[i]->getForces().array() * tang.array()).sum()));
