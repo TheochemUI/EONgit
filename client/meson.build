@@ -38,9 +38,28 @@ if not is_windows
   _deps += [declare_dependency(link_args: '-lstdc++')]
 endif
 
-threads_dep = dependency('threads',
-                         required: true)
-_deps += threads_dep
+# threads_dep = dependency('threads',
+#                          required: true)
+# _deps += threads_dep
+
+# setup the environment before this with:
+# . /opt/intel/oneapi/setvars.sh
+# tbb_dep = dependency('tbb', 'pkg-config', required: true)
+# _deps += tbb_dep
+
+# tbb_dep = cppc.find_library('mkl_tbb_thread')
+# _deps += tbb_dep
+
+# FIXME: Should compile ceres with mini glog
+glog_dep = dependency('glog')
+_deps += glog_dep
+lapack_dep = dependency('lapack')
+_deps += lapack_dep
+blas_dep = dependency('blas')
+_deps += blas_dep
+
+ceres_dep = cppc.find_library('ceres')
+_deps += ceres_dep
 
 eigen_dep = dependency('Eigen3', method : 'cmake', modules : ['Eigen3::Eigen'], required : true)
 _deps += [ eigen_dep ]
@@ -92,6 +111,7 @@ eonclib_sources = [
            'MinModeSaddleSearch.cpp',
            'StructureComparisonJob.cpp',
            'SteepestDescent.cpp',
+           'CeresOpt.cpp',
            'ImprovedDimer.cpp',
            'PointJob.cpp',
            'Prefactor.cpp',
