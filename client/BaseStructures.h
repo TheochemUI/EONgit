@@ -90,7 +90,8 @@ enum class OptType {
   ConjugateGradient,
   LBFGS,
   FIRE,
-  SteepestDescent
+  SteepestDescent,
+  ceres
 };
 
 enum class RunStatus { GOOD = 0, MAX_ITERATIONS, POTENTIAL_FAILED };

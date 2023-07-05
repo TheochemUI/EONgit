@@ -1,5 +1,6 @@
 #include "Optimizer.h"
 #include "BaseStructures.h"
+#include "CeresOpt.h"
 #include "ConjugateGradients.h"
 #include "FIRE.h"
 #include "LBFGS.h"
@@ -22,6 +23,9 @@ std::unique_ptr<Optimizer> mkOptim(std::shared_ptr<ObjectiveFunction> a_objf,
   }
   case OptType::LBFGS: {
     return std::make_unique<LBFGS>(a_objf, a_params);
+  }
+  case OptType::ceres: {
+    return std::make_unique<CeresSolver>(a_objf, a_params);
   }
   case OptType::SteepestDescent: {
     return std::make_unique<SteepestDescent>(a_objf, a_params);

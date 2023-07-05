@@ -352,6 +352,9 @@ std::string getOptName(OptType a_otype) {
   case OptType::FIRE: {
     return "Fast Inertial Relaxation Engine optimizer"s;
   }
+  case OptType::ceres: {
+    return "Ceres solver based optimizer"s;
+  }
   case OptType::SteepestDescent: {
     return "Steepest Descent optimizer"s;
   }
@@ -360,6 +363,7 @@ std::string getOptName(OptType a_otype) {
   }
 }
 OptType getOptType(std::string a_oname) {
+  SPDLOG_DEBUG("a_oname is {}", a_oname);
   if (a_oname == "cg"s) {
     return OptType::ConjugateGradient;
   } else if (a_oname == "qm"s) {
@@ -368,6 +372,8 @@ OptType getOptType(std::string a_oname) {
     return OptType::LBFGS;
   } else if (a_oname == "fire"s) {
     return OptType::FIRE;
+  } else if (a_oname == "ceres"s) {
+    return OptType::ceres;
   } else if (a_oname == "none"s) {
     return OptType::None;
   } else if (a_oname == "unknown"s) {
