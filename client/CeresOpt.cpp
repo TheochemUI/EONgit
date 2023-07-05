@@ -5,7 +5,7 @@ bool CeresCostFunction::Evaluate(const double *parameters, double *cost,
   const Eigen::VectorXd x =
       Eigen::Map<const Eigen::VectorXd>(parameters, m_objf->degreesOfFreedom());
   m_objf->setPositions(x);
-  *cost = m_objf->getEnergy();
+  cost[0] = m_objf->getEnergy();
 
   if (gradient != nullptr) {
     Eigen::VectorXd grad = m_objf->getGradient();
@@ -16,12 +16,22 @@ bool CeresCostFunction::Evaluate(const double *parameters, double *cost,
 }
 int CeresSolver::step(double a_maxMove) {
   m_options.max_num_iterations = 1; // for a single step
+  m_options.max_num_line_search_step_size_iterations = 20;
+  m_options.parameter_tolerance = 1e-20;
+  m_options.function_tolerance = 1e-20;
+  m_options.gradient_tolerance = 1e-20;
+  m_options.logging_type = ceres::SILENT;
+  m_options.line_search_interpolation_type = ceres::BISECTION;
   ceres::GradientProblemSolver::Summary summary;
   ceres::Manifold *manifold_ptr = nullptr;
-  auto cfunc = CeresCostFunction(m_objf);
-  ceres::GradientProblem problem(&cfunc, manifold_ptr);
+
+  CeresCostFunction *cfunc = new CeresCostFunction(m_objf);
+  ceres::GradientProblem problem(cfunc, manifold_ptr);
+
+  Eigen::VectorXd posi = m_objf->getPositions();
   Eigen::VectorXd positions = m_objf->getPositions();
   ceres::Solve(m_options, problem, positions.data(), &summary);
+  std::cout << summary.FullReport() << "\n";
   return summary.termination_type == ceres::CONVERGENCE ? 0 : 1;
 }
 
