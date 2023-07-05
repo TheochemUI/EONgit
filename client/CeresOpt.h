@@ -44,7 +44,7 @@ public:
   int run(size_t a_maxIterations, double a_maxMove) override;
 
 private:
-  std::unique_ptr<CeresCostFunction> m_problem;
+  std::shared_ptr<CeresCostFunction> m_problem;
   ceres::GradientProblemSolver::Options m_options;
   std::shared_ptr<spdlog::logger> m_log;
 };
