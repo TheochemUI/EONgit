@@ -14,7 +14,7 @@
 #include "potentials/IMD/IMD.h"
 #endif
 
-#ifdef WITH_GPRD
+#ifdef WITH_GPR_OPTIM
 #include "potentials/GPRPotential/GPRPotential.h"
 #endif
 
@@ -248,12 +248,6 @@ std::shared_ptr<Potential> makePotential(PotType ptype,
     break;
   }
 #endif
-#ifdef WITH_GPRD
-  // case PotType::GPR: {
-  //   return "gpr"s;
-  //   break;
-  // }
-#endif
   // case PotType::PYTHON: {
   //   TODO: Implement
   //   return "python"s;
@@ -275,7 +269,6 @@ std::shared_ptr<Potential> makePotential(PotType ptype,
 #ifdef WITH_ASE_ORCA
   case PotType::ASE_ORCA: {
     return (std::make_shared<ASEOrcaPot>(params));
-    break;
   }
 #endif
   default:

@@ -86,5 +86,15 @@ bool sortedR(const Matter &m1, const Matter &m2,
              const double distanceDifference);
 void pushApart(std::shared_ptr<Matter> m1, double minDistance);
 
+double computeMinInteratomicDistance(const std::shared_ptr<Matter> &matter);
+
+void cuh2_scan_grid(const size_t n_surrogate,
+                    const Eigen::VectorXd &hcu_dists,
+                    const Eigen::VectorXd &hh_dists, const Matter refMat,
+                    const std::shared_ptr<SurrogatePotential> pot);
+void cuh2_scan_grid(const size_t n_surrogate,
+                         const Eigen::VectorXd &hcu_dists,
+                         const Eigen::VectorXd &hh_dists, const Matter refMat,
+                         const std::shared_ptr<Potential> pot);
 } // namespace helper_functions
 #endif

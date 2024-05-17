@@ -21,8 +21,8 @@ Dimer::Dimer(std::shared_ptr<Matter> matter, std::shared_ptr<Parameters> params,
 }
 
 // was estimateLowestEigenmode. rename to compute
-void Dimer::compute(std::shared_ptr<Matter> matter,
-                    AtomMatrix initialDirection) {
+LowestEigenmode::LEMStatus Dimer::compute(std::shared_ptr<Matter> matter,
+                                          AtomMatrix initialDirection) {
   long rotations = 0;
   long forceCallsCenter;
   long forceCallsDimer;
@@ -134,7 +134,7 @@ void Dimer::compute(std::shared_ptr<Matter> matter,
 
   totalForceCalls += forceCallsCenter + forceCallsDimer;
 
-  return;
+  return LowestEigenmode::LEMStatus::GOOD;
 }
 
 double Dimer::getEigenvalue() { return eigenvalue; }

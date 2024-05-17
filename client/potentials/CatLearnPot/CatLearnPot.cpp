@@ -18,16 +18,25 @@ CatLearnPot::CatLearnPot(shared_ptr<Parameters> a_params)
 
   py::module_ gp_module = py::module_::import(
       "catlearn.regression.gaussianprocess.calculator.mlmodel");
+  py::module_ invdist_module = py::module_::import(
+      "catlearn.regression.gaussianprocess.fingerprint.invdistances");
+            // from ..regression.gaussianprocess.fingerprint.invdistances import Inv_distances
 
-  // Import the required modules
+            // if len(start)>1:
+            //     fp=Inv_distances(reduce_dimensions=True,use_derivatives=True,mic=False,sorting=False)
+            // else:
+            //     fp=None
+            // prior=Prior_max(add=1.0)
+            // mlmodel=get_default_mlmodel(model='tp',prior=prior,fp=fp,baseline=None,use_derivatives=True,parallel=(not save_memory),database_reduction=False)
+  auto fp = invdist_module.attr("Inv_distances")("reduce_dimensions"_a=true,"use_derivatives"_a=true,"mic"_a=false,"sorting"_a=false);
   // GP Model
   this->m_gpmod =
-      gp_module.attr("get_default_model")("model"_a = a_params->catl_model);
+      gp_module.attr("get_default_model")("model"_a = a_params->catl_model, "fp"_a=fp);
 };
 
 void CatLearnPot::train_optimize(Eigen::MatrixXd features,
                                  Eigen::MatrixXd targets) {
-  m_gpmod.attr("optimize")(features, targets, py::arg("retrain") = true);
+  this->m_gpmod.attr("optimize")(features, targets, py::arg("retrain") = true);
   return;
 }
 

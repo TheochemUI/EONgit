@@ -47,7 +47,15 @@ threads_dep = dependency('threads',
                          required: true)
 _deps += threads_dep
 
-eigen_dep = dependency('Eigen3', method : 'cmake', modules : ['Eigen3::Eigen'], required : true)
+# Handle Eigen dependencies gracefully
+eigen = dependency('Eigen3', method : 'cmake', modules : ['Eigen3::Eigen'], required : false)
+if eigen.found()
+  eigen_dep = eigen
+else
+  eigen_proj = subproject('eigen')
+  eigen_dep = eigen_proj.get_variable('eigen_dep')
+endif
+
 _deps += [ eigen_dep ]
 
 fmt_dep = dependency('fmt',
@@ -150,14 +158,16 @@ eonclient_sources = [
 
 # ------------------- Options
 
-if get_option('with_gprd')
+if get_option('with_gpr_optim')
   libgprd_proj = subproject('gpr_optim')
   gprd_dep = libgprd_proj.get_variable('libgprd_dep')
+  _deps += [ gprd_dep ]
+  _args += ['-DWITH_GPR_OPTIM']
+  eonclib_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp' ]
+  # The GPR potential cannot be built alone
+  eonclib_sources += ['potentials/GPRPotential/GPRPotential.cpp']
   # subdir('potentials/GPRPotential')
   # potentials += [ gprpot ]
-  _args += ['-DWITH_GPRD']
-  eonclib_sources += [ 'AtomicGPDimer.cpp', 'GPRHelpers.cpp' ]
-  _deps += [ gprd_dep ]
 endif
 
 if get_option('with_gp_surrogate')
@@ -307,7 +317,7 @@ eclib = library('eonclib',
 
 _linkto += eclib
 
-# ---------------------- Executable
+# ---------------------- Executables
 
 ec = executable('eonclient',
                 sources : eonclient_sources,
@@ -328,6 +338,13 @@ ec2 = executable('testWriteR',
                 link_with : _linkto,
                 )
 
+
+ec3 = executable('gptestPot',
+                'testgppot.cpp',
+                dependencies : _deps,
+                link_with : _linkto,
+                cpp_args : _args,
+                )
 # ------------------------ Tests
 
 if get_option('with_tests')

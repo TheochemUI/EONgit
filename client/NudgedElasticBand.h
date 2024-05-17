@@ -37,7 +37,11 @@ public:
   void updateForces(void);
   double convergenceForce(void);
   void findExtrema(void);
+  void printImageDataBase(const std::string &filename,
+                          bool writeToFile = false);
   void printImageData(bool writeToFile = false, size_t idx = 0);
+  void printImageDataGP(bool writeToFile = false, size_t idx = 0,
+                        size_t gpNumber = 0);
 
   int atoms;
   long numImages, climbingImage, numExtrema;
@@ -79,7 +83,8 @@ public:
   VectorXd getPositions();
   int degreesOfFreedom();
   bool isConverged();
-  bool isUncertain();
+  bool isUncertain(double uncertainity_measure);
+  double getMaxUncertainity();
   double getConvergence();
   VectorXd difference(VectorXd a, VectorXd b);
   NudgedElasticBand::NEBStatus status;

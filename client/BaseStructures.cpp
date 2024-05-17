@@ -113,8 +113,8 @@ std::string getPotentialName(PotType ptype) {
     return "ams_io"s;
     break;
   }
-  case PotType::GPR: {
-    return "gpr"s;
+  case PotType::GPR_Optim: {
+    return "gpr_optim"s;
     break;
   }
   case PotType::PYTHON: {
@@ -131,13 +131,14 @@ std::string getPotentialName(PotType ptype) {
   }
   case PotType::ASE_ORCA: {
     return "ase_orca"s;
-    break;
   }
-  default:
+  default: {
     return "unknown potential"s;
     break;
   }
+  }
 }
+
 PotType getPotentialType(const std::string pname) {
   if (pname == "emt"s) {
     return PotType::EMT;
@@ -191,12 +192,14 @@ PotType getPotentialType(const std::string pname) {
     return PotType::BOP;
   } else if (pname == "python"s) {
     return PotType::PYTHON;
-  } else if (pname == "catlearn") {
+  } else if (pname == "catlearn"s) {
     return PotType::CatLearn;
-  } else if (pname == "xtb") {
-    return PotType::XTB;
-  } else if (pname == "ase_orca") {
+  } else if (pname == "ase_orca"s) {
     return PotType::ASE_ORCA;
+  } else if (pname == "xtb"s) {
+    return PotType::XTB;
+  } else if (pname == "gpr_optim"s) {
+    return PotType::GPR_Optim;
   } else {
     return PotType::UNKNOWN;
   }

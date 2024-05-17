@@ -22,14 +22,14 @@
 namespace py = pybind11;
 using namespace pybind11::literals; // to bring in the `_a` literal
 
-class CatLearnPot : public SurrogatePotential {
+class CatLearnPot final : public SurrogatePotential {
 
 public:
   CatLearnPot(shared_ptr<Parameters> a_params);
 
   // Functions
-  void train_optimize(Eigen::MatrixXd features,
-                      Eigen::MatrixXd targets) override;
+  void train_optimize(Eigen::MatrixXd a_features,
+                      Eigen::MatrixXd a_targets) override;
   void force(long nAtoms, const double *positions, const int *atomicNrs,
              double *forces, double *energy, double *variance,
              const double *box) override;

@@ -285,8 +285,17 @@ AtomMatrix Matter::getPositionsFree() const {
   return ret;
 }
 
-VectorXi Matter::getAtomicNrsFree() const {
-  return this->atomicNrs.array() * getFreeV().cast<int>().array();
+Eigen::VectorXi Matter::getAtomicNrsFree() const {
+    Eigen::VectorXi freeV = getFreeV().cast<int>();
+    std::vector<int> atomicNrsFree;
+
+    for (int i = 0; i < atomicNrs.size(); ++i) {
+        if (freeV[i]) {
+            atomicNrsFree.push_back(atomicNrs[i]);
+        }
+    }
+
+    return Eigen::Map<Eigen::VectorXi>(atomicNrsFree.data(), atomicNrsFree.size());
 }
 
 bool Matter::relax(bool quiet, bool writeMovie, bool checkpoint,
@@ -830,8 +839,7 @@ bool Matter::con2matter(FILE *file) {
 void Matter::computePotential() {
   if (recomputePotential) {
     if (!potential) {
-      potential =
-          helper_functions::makePotential(parameters->potential, parameters);
+      throw std::runtime_error("You should have had a potential");
     }
     auto surrogatePotential =
         std::dynamic_pointer_cast<SurrogatePotential>(potential);

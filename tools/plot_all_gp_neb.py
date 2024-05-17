@@ -6,11 +6,10 @@ from cmcrameri import cm
 
 plt.style.use("bmh")
 
-# List all files matching the pattern 'neb_***.dat', excluding the last one
-file_paths = glob.glob("neb_*.dat")
+# Early ones are too large
+file_paths = glob.glob("gp_*_neb_*.dat")
 file_paths.sort()  # Sort the file paths to ensure correct order
 
-# Set up your figure and axes
 fig, ax = plt.subplots(figsize=(3.2, 2.5), dpi=200)
 
 # Get the colormap and reverse it
@@ -52,7 +51,7 @@ ax.minorticks_on()
 ax.set_ylim(0, ax.get_ylim()[1])
 ax.set_xlim(0, ax.get_xlim()[1])
 ax.set_facecolor("gray")
-plt.title("NEB paths")
+plt.title("Final GP NEB-CI paths\n Using GP energies")
 plt.tight_layout(pad=0.2)
 plt.subplots_adjust(left=0.20)
 
@@ -62,5 +61,5 @@ cbar = fig.colorbar(sm, ax=ax)
 cbar.set_label("File Index")
 
 # Save and show the plot
-plt.savefig("neb_energy_path_combined.pdf", transparent=True)
+plt.savefig("neb_gp_energy_path_combined.pdf", transparent=True)
 plt.show()
