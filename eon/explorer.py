@@ -10,7 +10,7 @@ import pickle as pickle
 from copy import copy
 import numpy
 
-from eon.config import config
+from eon.migrator.config import config
 from eon import atoms
 from eon import communicator
 from eon import displace
@@ -116,7 +116,7 @@ class MinModeExplorer(Explorer):
                     logger.debug("kdb insert: %s", output)
 
     def generate_displacement(self):
-        if config.recycling_on and self.state.number is not 0:
+        if config.recycling_on and self.state.number != 0:
             displacement, mode = self.recycler.make_suggestion()
             if displacement:
                 self.nrecycled += 1
