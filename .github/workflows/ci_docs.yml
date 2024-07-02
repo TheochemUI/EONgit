@@ -1,10 +1,16 @@
 name: Build documentation
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref }}
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 on: [push, pull_request]
 jobs:
   build_docs:
+    permissions:
+      contents: read
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
     name: Build documentation
     runs-on: ubuntu-latest
     strategy:
